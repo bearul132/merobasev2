@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "MeroBase API",
+    "_postman_id": "12345678-abcd-efgh-ijkl-1234567890ab",
+    "description": "Postman collection for MeroBase Sample API (using sampleId)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Sample",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sampleName\": \"Coral Fragment 01\",\n  \"projectSample\": \"A\",\n  \"projectNumber\": 12,\n  \"sampleNumber\": 345,\n  \"kingdom\": \"Animalia\",\n  \"family\": \"Acroporidae\",\n  \"genus\": \"Acropora\",\n  \"species\": \"Acropora millepora\",\n  \"dateAcquired\": \"2025-08-31\",\n  \"coordinates\": { \"x\": -8.672, \"y\": 115.452 }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/samples",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["samples"]
+        }
+      }
+    },
+    {
+      "name": "Get All Samples",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5000/samples",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["samples"]
+        }
+      }
+    },
+    {
+      "name": "Get Sample by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5000/samples/A-0012-0345",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["samples", "A-0012-0345"]
+        }
+      }
+    },
+    {
+      "name": "Update Sample",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"family\": \"NewFamily\",\n  \"species\": \"Updated species name\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/samples/A-0012-0345",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["samples", "A-0012-0345"]
+        }
+      }
+    },
+    {
+      "name": "Delete Sample",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "http://localhost:5000/samples/A-0012-0345",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["samples", "A-0012-0345"]
+        }
+      }
+    }
+  ]
+}
