@@ -1,36 +1,49 @@
+// src/pages/EditSample.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import axios from "axios";
 import "leaflet/dist/leaflet.css";
+import { LayoutDashboard, PlusCircle, Search, Edit3, ChevronRight } from "lucide-react";
 
-// Kingdom and project type options
 const kingdoms = ["Animalia", "Plantae", "Fungi", "Protista", "Undecided"];
 const projectTypes = ["A", "B"];
 
-// Map click component
 function LocationPicker({ setLat, setLng }) {
   useMapEvents({
     click(e) {
-      setLat(e.latlng.lat.toFixed(6));
-      setLng(e.latlng.lng.toFixed(6));
+      setLat(Number(e.latlng.lat).toFixed(6));
+      setLng(Number(e.latlng.lng).toFixed(6));
     },
   });
   return null;
 }
 
-export default function EditSample({ samples, setSamples }) {
-  const navigate = useNavigate();
+const handleFileChange = (e, setter) => {
+  if (e.target.files && e.target.files[0]) {
+    setter(URL.createObjectURL(e.target.files[0]));
+  }
+};
 
+export default function EditSample() {
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [samples, setSamples] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
   const [searchText, setSearchText] = useState("");
   const [selectedKingdomFilter, setSelectedKingdomFilter] = useState("All");
   const [selectedProjectFilter, setSelectedProjectFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // Editing
   const [selectedSampleId, setSelectedSampleId] = useState(null);
   const [editingSample, setEditingSample] = useState(null);
 
-  // Editable form state
+  // Form state
   const [sampleType, setSampleType] = useState("Biological");
   const [samplePhoto, setSamplePhoto] = useState(null);
   const [semPhoto, setSemPhoto] = useState(null);
@@ -51,37 +64,47 @@ export default function EditSample({ samples, setSamples }) {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
 
-  // Filtered sample list
+  // Fetch samples from backend
+  useEffect(() => {
+    const fetchSamples = async () => {
+      try {
+        const res = await axios.get("https://merobase-backendv2-production-2013.up.railway.app/api/samples");
+        setSamples(res.data);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to fetch samples from backend");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSamples();
+  }, []);
+
   const filteredSamples = samples.filter((sample) => {
-    const matchesText =
-      sample.sampleName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      sample.species?.toLowerCase().includes(searchText.toLowerCase()) ||
-      sample.genus?.toLowerCase().includes(searchText.toLowerCase());
+    const textMatch =
+      (sample.sampleName?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
+      (sample.species?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
+      (sample.genus?.toLowerCase().includes(searchText.toLowerCase()) ?? false);
 
-    const matchesKingdom =
-      selectedKingdomFilter === "All" || sample.kingdom === selectedKingdomFilter;
+    const kingdomMatch = selectedKingdomFilter === "All" || sample.kingdom === selectedKingdomFilter;
+    const projectMatch = selectedProjectFilter === "All" || sample.projectType === selectedProjectFilter;
 
-    const matchesProject =
-      selectedProjectFilter === "All" || sample.projectType === selectedProjectFilter;
-
-    let matchesDate = true;
-    const sampleDate = new Date(sample.collectionDate || sample.lastEdited);
-    if (startDate && endDate) {
-      matchesDate = sampleDate >= new Date(startDate) && sampleDate <= new Date(endDate);
+    let dateMatch = true;
+    const sampleDate = sample.collectionDate ? new Date(sample.collectionDate) : sample.lastEdited ? new Date(sample.lastEdited) : null;
+    if (sampleDate && startDate && endDate) {
+      dateMatch = sampleDate >= new Date(startDate) && sampleDate <= new Date(endDate);
     }
-
-    return matchesText && matchesKingdom && matchesProject && matchesDate;
+    return textMatch && kingdomMatch && projectMatch && dateMatch;
   });
 
-  // Populate form when a sample is selected
+  // Load selected sample
   useEffect(() => {
-    if (!selectedSampleId) return;
-    const sample = samples.find((s) => s.id === selectedSampleId);
+    if (!selectedSampleId) return setEditingSample(null);
+    const sample = samples.find((s) => s._id === selectedSampleId);
     if (!sample) return;
 
     setEditingSample(sample);
 
-    // Reset form fields properly
     setSampleType(sample.sampleType || "Biological");
     setSamplePhoto(sample.samplePhoto || null);
     setSemPhoto(sample.semPhoto || null);
@@ -99,25 +122,21 @@ export default function EditSample({ samples, setSamples }) {
     setFamily(sample.family || "");
     setKingdom(sample.kingdom || "Undecided");
     setCollectionDate(sample.collectionDate || "");
-    setLat(sample.latitude || "");
-    setLng(sample.longitude || "");
+    setLat(sample.latitude ?? "");
+    setLng(sample.longitude ?? "");
   }, [selectedSampleId, samples]);
 
-  // Ensure dropdown resets if sampleType changes
   useEffect(() => {
     if (sampleType === "Non-Biological") {
-      setSpecies("");
-      setGenus("");
-      setFamily("");
-      setKingdom("Undecided");
-      setCollectionDate("");
+      setSpecies(""); setGenus(""); setFamily(""); setKingdom("Undecided"); setCollectionDate(""); setLat(""); setLng("");
     }
   }, [sampleType]);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    if (!editingSample) return alert("No sample selected to update.");
+
     const updatedSample = {
-      ...editingSample,
       sampleType,
       samplePhoto,
       semPhoto,
@@ -138,312 +157,191 @@ export default function EditSample({ samples, setSamples }) {
       lastEdited: new Date(),
     };
 
-    const newSamples = samples.map((s) =>
-      s.id === selectedSampleId ? updatedSample : s
-    );
-    setSamples(newSamples);
-    alert("Sample updated!");
-    navigate("/dashboard");
+    try {
+      await axios.put(`https://merobase-backendv2-production-2013.up.railway.app/api/samples/${selectedSampleId}`, updatedSample);
+      alert("Sample updated successfully!");
+      setSamples(samples.map((s) => (s._id === selectedSampleId ? { ...s, ...updatedSample } : s)));
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update sample on backend");
+    }
   };
 
+  if (loading) return <div className="min-h-screen flex justify-center items-center">Loading samples...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 font-sans">
-      <h1 className="text-2xl font-bold text-blue-600 mb-6 text-center">Edit Sample</h1>
-
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-xl shadow-md mb-6 space-y-4">
-        <input
-          type="text"
-          placeholder="Search sample name, species, genus..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
-          <select
-            value={selectedKingdomFilter}
-            onChange={(e) => setSelectedKingdomFilter(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option>All</option>
-            {kingdoms.map((k) => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedProjectFilter}
-            onChange={(e) => setSelectedProjectFilter(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option>All</option>
-            {projectTypes.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
+    <div className="min-h-screen flex bg-gray-50 font-sans">
+      {/* Sidebar */}
+      <div
+        onMouseEnter={() => setSidebarOpen(true)}
+        onMouseLeave={() => setSidebarOpen(false)}
+        className={`fixed top-0 left-0 h-screen bg-white shadow-xl transition-all duration-300 ${sidebarOpen ? "w-56" : "w-16"} flex flex-col items-start`}
+      >
+        <div className="flex items-center space-x-2 p-4 w-full">
+          <ChevronRight className={`transition-transform duration-300 ${sidebarOpen ? "rotate-90" : ""}`} />
+          {sidebarOpen && <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>}
         </div>
+        <nav className="flex flex-col mt-4 w-full">
+          <button onClick={() => navigate("/dashboard")} className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-blue-50 transition rounded-lg">
+            <LayoutDashboard className="text-blue-600" />
+            {sidebarOpen && <span className="text-gray-700">Dashboard</span>}
+          </button>
+          <button onClick={() => navigate("/addsample")} className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-green-50 transition rounded-lg">
+            <PlusCircle className="text-green-600" />
+            {sidebarOpen && <span className="text-gray-700">Add Sample</span>}
+          </button>
+          <button onClick={() => navigate("/editsample")} className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-yellow-50 transition rounded-lg">
+            <Edit3 className="text-yellow-600" />
+            {sidebarOpen && <span className="text-gray-700">Edit Sample</span>}
+          </button>
+          <button onClick={() => navigate("/searchsample")} className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-purple-50 transition rounded-lg">
+            <Search className="text-purple-600" />
+            {sidebarOpen && <span className="text-gray-700">Search Sample</span>}
+          </button>
+        </nav>
       </div>
 
-      {/* Filtered Sample List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {filteredSamples.length === 0 && (
-          <p className="text-gray-500 col-span-full text-center">No samples match your search.</p>
-        )}
-        {filteredSamples.map((sample) => (
-          <div
-            key={sample.id}
-            className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition cursor-pointer"
-          >
-            <h2 className="font-semibold text-lg mb-1">{sample.sampleName || sample.species}</h2>
-            <p className="text-gray-600 text-sm mb-1">Project: {sample.projectType} #{sample.projectNumber}</p>
-            <p className="text-gray-600 text-sm mb-1">Sample #: {sample.sampleNumber}</p>
-            <p className="text-gray-600 text-sm mb-2">
-              Collected: {sample.collectionDate || new Date(sample.lastEdited).toLocaleDateString()}
-            </p>
-            <button
-              className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-              onClick={() => setSelectedSampleId(sample.id)}
-            >
-              Edit Sample
-            </button>
+      {/* Main */}
+      <div className={`flex-1 transition-all duration-300 p-6 ${sidebarOpen ? "ml-56" : "ml-16"}`}>
+        <h1 className="text-2xl font-bold text-blue-600 mb-6">Edit Sample</h1>
+
+        {/* Filter + List */}
+        <div className="bg-white p-6 rounded-xl shadow-md mb-6 max-w-5xl mx-auto">
+          <input type="text" placeholder="Search sample name, species, genus..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4" />
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <select value={selectedKingdomFilter} onChange={(e) => setSelectedKingdomFilter(e.target.value)} className="px-4 py-2 border rounded-lg">
+              <option>All</option>
+              {kingdoms.map((k) => <option key={k}>{k}</option>)}
+            </select>
+            <select value={selectedProjectFilter} onChange={(e) => setSelectedProjectFilter(e.target.value)} className="px-4 py-2 border rounded-lg">
+              <option>All</option>
+              {projectTypes.map((p) => <option key={p}>{p}</option>)}
+            </select>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-4 py-2 border rounded-lg" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-4 py-2 border rounded-lg" />
           </div>
-        ))}
-      </div>
 
-      {/* Editable Form */}
-      {editingSample && (
-        <div className="bg-white p-6 rounded-xl shadow-md max-h-screen overflow-y-auto">
-          <h2 className="text-xl font-semibold mb-4">
-            Editing: {editingSample.sampleName || editingSample.species}
-          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {filteredSamples.length === 0 ? (
+              <p className="text-center text-gray-500 col-span-full">No samples match your filters.</p>
+            ) : (
+              filteredSamples.map((sample) => (
+                <div key={sample._id} className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
+                  <h2 className="font-semibold text-lg">{sample.sampleName || sample.species || "Unnamed Sample"}</h2>
+                  <p className="text-gray-600 text-sm">Project: {sample.projectType} #{sample.projectNumber ?? "-"}</p>
+                  <p className="text-gray-600 text-sm">Sample #: {sample.sampleNumber ?? "-"}</p>
+                  <p className="text-gray-600 text-sm mb-3">Collected: {sample.collectionDate ? new Date(sample.collectionDate).toLocaleDateString() : sample.lastEdited ? new Date(sample.lastEdited).toLocaleDateString() : "-"}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setSelectedSampleId(sample._id)} className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm">
+                      Edit Sample
+                    </button>
+                    <button onClick={() => navigate(`/sampledetails/${sample._id}`, { state: { sample } })} className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
-          <form onSubmit={handleSave} className="space-y-5">
-            {/* Sample Photo */}
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Sample Photo</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setSamplePhoto(URL.createObjectURL(e.target.files[0]))}
-                className="w-full"
-              />
-              {samplePhoto && <img src={samplePhoto} alt="Sample" className="mt-2 w-full h-40 object-cover rounded" />}
-            </div>
+          {/* Edit Form */}
+          {editingSample && (
+            <div className="bg-white p-6 rounded-xl shadow-md mt-6">
+              <h2 className="text-xl font-semibold mb-4">Editing: {editingSample.sampleName || editingSample.species}</h2>
+              <form onSubmit={handleSave} className="space-y-5">
+                {/* Sample Photo */}
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Sample Photo</label>
+                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setSamplePhoto)} />
+                  {samplePhoto && <img src={samplePhoto} alt="Sample" className="mt-2 w-full h-40 object-cover rounded" />}
+                </div>
 
-            {/* Sample Type */}
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Sample Type</label>
-              <select
-                value={sampleType}
-                onChange={(e) => setSampleType(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option>Biological</option>
-                <option>Non-Biological</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Sample Type</label>
+                  <select value={sampleType} onChange={(e) => setSampleType(e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                    <option>Biological</option>
+                    <option>Non-Biological</option>
+                  </select>
+                </div>
 
-            {/* Main Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Sample Name</label>
-                <input
-                  type="text"
-                  value={sampleName}
-                  onChange={(e) => setSampleName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Project Type</label>
-                <select
-                  value={projectType}
-                  onChange={(e) => setProjectType(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  {projectTypes.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[{ label: "Sample Name", value: sampleName, setter: setSampleName, type: "text", required: true },
+                    { label: "Project Number", value: projectNumber, setter: setProjectNumber, type: "number" },
+                    { label: "Sample Number", value: sampleNumber, setter: setSampleNumber, type: "number" },
+                    { label: "Dive Site", value: diveSite, setter: setDiveSite, type: "text" },
+                    { label: "Collector Name", value: collectorName, setter: setCollectorName, type: "text" },
+                  ].map(({ label, value, setter, type, required }, idx) => (
+                    <div key={idx}>
+                      <label className="block text-gray-700 font-medium mb-1">{label}</label>
+                      <input type={type} value={value} onChange={(e) => setter(e.target.value)} className="w-full px-4 py-2 border rounded-lg" {...(required ? { required: true } : {})} />
+                    </div>
                   ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Project Number</label>
-                <input
-                  type="number"
-                  value={projectNumber}
-                  onChange={(e) => setProjectNumber(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Sample Number</label>
-                <input
-                  type="number"
-                  value={sampleNumber}
-                  onChange={(e) => setSampleNumber(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Dive Site</label>
-                <input
-                  type="text"
-                  value={diveSite}
-                  onChange={(e) => setDiveSite(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Collector Name</label>
-                <input
-                  type="text"
-                  value={collectorName}
-                  onChange={(e) => setCollectorName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              {/* Biological-only fields */}
-              {sampleType === "Biological" && (
-                <>
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Species</label>
-                    <input
-                      type="text"
-                      value={species}
-                      onChange={(e) => setSpecies(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  </div>
 
                   <div>
-                    <label className="block text-gray-700 font-medium mb-1">Genus</label>
-                    <input
-                      type="text"
-                      value={genus}
-                      onChange={(e) => setGenus(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Family</label>
-                    <input
-                      type="text"
-                      value={family}
-                      onChange={(e) => setFamily(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Kingdom</label>
-                    <select
-                      value={kingdom}
-                      onChange={(e) => setKingdom(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    >
-                      {kingdoms.map((k) => (
-                        <option key={k} value={k}>{k}</option>
-                      ))}
+                    <label className="block text-gray-700 font-medium mb-1">Project Type</label>
+                    <select value={projectType} onChange={(e) => setProjectType(e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                      {projectTypes.map((p) => (<option key={p}>{p}</option>))}
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1">Collection Date</label>
-                    <input
-                      type="date"
-                      value={collectionDate}
-                      onChange={(e) => setCollectionDate(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                  </div>
+                  {sampleType === "Biological" && (
+                    <>
+                      {[{ label: "Species", value: species, setter: setSpecies },
+                        { label: "Genus", value: genus, setter: setGenus },
+                        { label: "Family", value: family, setter: setFamily },
+                      ].map(({ label, value, setter }, idx) => (
+                        <div key={idx}>
+                          <label className="block text-gray-700 font-medium mb-1">{label}</label>
+                          <input type="text" value={value} onChange={(e) => setter(e.target.value)} className="w-full px-4 py-2 border rounded-lg" />
+                        </div>
+                      ))}
 
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-700 font-medium mb-2">Select Location</label>
-                    <MapContainer
-                      center={[-8.65, 115.2167]}
-                      zoom={10}
-                      scrollWheelZoom={true}
-                      className="w-full h-96 rounded-xl shadow-md"
-                    >
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      {lat && lng && <Marker position={[lat, lng]} />}
-                      <LocationPicker setLat={setLat} setLng={setLng} />
-                    </MapContainer>
-                    <p className="mt-2 text-gray-500 text-sm">
-                      Latitude: {lat || "Not selected"}, Longitude: {lng || "Not selected"}
-                    </p>
-                  </div>
-                </>
-              )}
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1">Kingdom</label>
+                        <select value={kingdom} onChange={(e) => setKingdom(e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                          {kingdoms.map((k) => (<option key={k}>{k}</option>))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1">Collection Date</label>
+                        <input type="date" value={collectionDate} onChange={(e) => setCollectionDate(e.target.value)} className="w-full px-4 py-2 border rounded-lg" />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-gray-700 font-medium mb-1">Select Location</label>
+                        <MapContainer center={lat && lng ? [lat, lng] : [-8.65, 115.2167]} zoom={10} scrollWheelZoom className="w-full h-72 rounded-xl shadow mb-2">
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          {lat && lng && <Marker position={[lat, lng]} />}
+                          <LocationPicker setLat={setLat} setLng={setLng} />
+                        </MapContainer>
+                        <p className="text-gray-500 text-sm">Latitude: {lat || "Not selected"} — Longitude: {lng || "Not selected"}</p>
+                      </div>
+                    </>
+                  )}
+
+                  {[{ label: "SEM Photo", setter: setSemPhoto, value: semPhoto },
+                    { label: "Isolated Photo", setter: setIsolatedPhoto, value: isolatedPhoto },
+                  ].map(({ label, setter, value }, idx) => (
+                    <div key={idx}>
+                      <label className="block text-gray-700 font-medium mb-1">{label}</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, setter)} />
+                      {value && <img src={value} alt={label} className="mt-2 w-full h-40 object-cover rounded" />}
+                    </div>
+                  ))}
+                </div>
+
+                <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                  Save Changes
+                </button>
+              </form>
             </div>
-
-            {/* SEM and Isolated Photos */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">SEM Photo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSemPhoto(URL.createObjectURL(e.target.files[0]))}
-                  className="w-full"
-                />
-                {semPhoto && (
-                  <img
-                    src={semPhoto}
-                    alt="SEM"
-                    className="mt-2 w-full h-32 object-cover rounded"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-1">Isolated Photo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setIsolatedPhoto(URL.createObjectURL(e.target.files[0]))}
-                  className="w-full"
-                />
-                {isolatedPhoto && (
-                  <img
-                    src={isolatedPhoto}
-                    alt="Isolated"
-                    className="mt-2 w-full h-32 object-cover rounded"
-                  />
-                )}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition mt-4"
-            >
-              Save Changes
-            </button>
-          </form>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -5,8 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import AddNewSample from "./pages/AddSample";
 import SearchSample from "./pages/SearchSample";
 import EditSample from "./pages/EditSample";
+import SampleDetails from "./pages/SampleDetails";
 
-// Initial mock data (optional)
 const initialSamples = [
   {
     id: "SMP-001",
@@ -38,21 +38,19 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={<Dashboard samples={samples} />}
-        />
+        <Route path="/dashboard" element={<Dashboard samples={samples} />} />
         <Route
           path="/addsample"
           element={<AddNewSample samples={samples} setSamples={setSamples} />}
         />
-        <Route
-          path="/searchsample"
-          element={<SearchSample samples={samples} />}
-        />
+        <Route path="/searchsample" element={<SearchSample samples={samples} />} />
         <Route
           path="/editsample"
           element={<EditSample samples={samples} setSamples={setSamples} />}
+        />
+        <Route
+          path="/sampledetails/:id"
+          element={<SampleDetails samples={samples} />}
         />
       </Routes>
     </Router>
