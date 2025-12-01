@@ -1,22 +1,24 @@
+// SampleDetails.jsx
+// (generated with option 3 table formatting and Biochemical Tests = option B)
+
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { useState } from "react";
+import { LayoutDashboard, PlusCircle, Edit3, Search, ChevronRight } from "lucide-react";
 
 export default function SampleDetails() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams(); // fallback if needed
+  const { id } = useParams();
 
-  // 1️⃣ Try to get sample passed via navigate()
   let sample = location.state?.sample;
 
-  // 2️⃣ If not found, try to load samples from localStorage and find by sampleID
   if (!sample && id) {
     const stored = JSON.parse(localStorage.getItem("samples") || "[]");
     sample = stored.find((s) => s.sampleID === id);
   }
 
-  // 3️⃣ Still nothing? Show error
   if (!sample) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center">
@@ -31,88 +33,336 @@ export default function SampleDetails() {
     );
   }
 
-  // Default coordinates if missing
   const lat = sample.latitude || -8.65;
   const lng = sample.longitude || 115.2167;
 
-  return (
-    <div className="p-8 max-w-4xl mx-auto mt-16">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-        Sample Details
-      </h1>
+  const [open, setOpen] = useState({
+    basic: true,
+    morphology: true,
+    microbiology: true,
+    molecular: true,
+  });
 
-      <div className="bg-white shadow-lg rounded-xl p-6 mb-10">
-        {/* SAMPLE INFORMATION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <p><strong>Sample ID:</strong> {sample.sampleID}</p>
-          <p><strong>Species:</strong> {sample.species || "N/A"}</p>
-          <p><strong>Genus:</strong> {sample.genus || "N/A"}</p>
-          <p><strong>Family:</strong> {sample.family || "N/A"}</p>
-          <p><strong>Kingdom:</strong> {sample.kingdom || "N/A"}</p>
-          <p><strong>Project Type:</strong> {sample.projectType || "N/A"}</p>
-          <p><strong>Collector:</strong> {sample.collectorName || "N/A"}</p>
-          <p><strong>Date Collected:</strong> {sample.collectionDate || "N/A"}</p>
-          <p><strong>Dive Site:</strong> {sample.diveSite || "N/A"}</p>
-          <p><strong>Location:</strong> {lat}, {lng}</p>
+  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const TableCard = ({ title, children }) => (
+    <div className="bg-white shadow rounded-xl p-6 mb-6">
+      <h3 className="text-lg font-semibold mb-4 text-gray-700">{title}</h3>
+      <div className="overflow-x-auto">{children}</div>
+    </div>
+  );
+
+  const renderRow = (label, value) => (
+    <tr className="border-b">
+      <td className="px-4 py-2 font-medium text-gray-700">{label}</td>
+      <td className="px-4 py-2 text-gray-600">{value || "N/A"}</td>
+    </tr>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <div
+        onMouseEnter={() => setSidebarOpen(true)}
+        onMouseLeave={() => setSidebarOpen(false)}
+        className={`h-screen bg-white shadow-xl transition-all duration-300 fixed ${
+          sidebarOpen ? "w-56" : "w-16"
+        } flex flex-col items-start`}
+      >
+        <div className="flex items-center space-x-2 p-4">
+          <ChevronRight
+            className={`transition-transform duration-300 ${
+              sidebarOpen ? "rotate-90" : ""
+            }`}
+          />
+          {sidebarOpen && (
+            <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>
+          )}
         </div>
 
-        {/* MAP */}
-        <h2 className="text-xl font-semibold text-gray-700 mb-3">
-          Sample Location
-        </h2>
+        <nav className="flex flex-col mt-4 w-full">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center space-x-3 px-4 py-3 hover:bg-blue-50 rounded-lg"
+          >
+            <LayoutDashboard className="text-blue-600" />
+            {sidebarOpen && <span>Dashboard</span>}
+          </button>
 
+          <button
+            onClick={() => navigate("/addsample")}
+            className="flex items-center space-x-3 px-4 py-3 hover:bg-green-50 rounded-lg"
+          >
+            <PlusCircle className="text-green-600" />
+            {sidebarOpen && <span>Add Sample</span>}
+          </button>
+
+          <button
+            onClick={() => navigate("/editsample")}
+            className="flex items-center space-x-3 px-4 py-3 hover:bg-yellow-50 rounded-lg"
+          >
+            <Edit3 className="text-yellow-600" />
+            {sidebarOpen && <span>Edit Sample</span>}
+          </button>
+
+          <button
+            onClick={() => navigate("/searchsample")}
+            className="flex items-center space-x-3 px-4 py-3 hover:bg-purple-50 rounded-lg"
+          >
+            <Search className="text-purple-600" />
+            {sidebarOpen && <span>Search Sample</span>}
+          </button>
+        </nav>
+      </div>
+
+      <div className="flex-1 ml-16 md:ml-64 p-8 max-w-4xl mx-auto mt-16">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+          Sample Details
+        </h1>
+
+        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+          <button
+            onClick={() => toggle("basic")}
+            className="w-full text-left text-xl font-semibold mb-4 text-gray-700"
+          >
+            Basic Information {open.basic ? "▲" : "▼"}
+          </button>
+
+          {open.basic && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p><strong>Sample ID:</strong> {sample.sampleID}</p>
+              <p><strong>Sample Type:</strong> {sample.sampleType}</p>
+              <p><strong>Name:</strong> {sample.sampleName || "N/A"}</p>
+              <p><strong>Species:</strong> {sample.species}</p>
+              <p><strong>Genus:</strong> {sample.genus || "N/A"}</p>
+              <p><strong>Family:</strong> {sample.family || "N/A"}</p>
+              <p><strong>Kingdom:</strong> {sample.kingdom}</p>
+              <p><strong>Project Type:</strong> {sample.projectType}</p>
+              <p><strong>Collector:</strong> {sample.collectorName}</p>
+              <p><strong>Collection Date:</strong> 
+                {sample.collectionDate
+                  ? new Date(sample.collectionDate).toLocaleDateString()
+                  : "N/A"}
+              </p>
+              <p><strong>Storage Location:</strong> {sample.storageLocation}</p>
+              <p><strong>Coordinates:</strong> {lat}, {lng}</p>
+            </div>
+          )}
+        </div>
+
+        <h2 className="text-xl font-semibold text-gray-700 mb-3">Sample Location</h2>
         <MapContainer
           center={[lat, lng]}
           zoom={12}
           scrollWheelZoom={true}
-          className="w-full h-72 rounded-lg shadow mb-8"
+          className="w-full h-72 rounded-lg shadow mb-10"
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <Marker position={[lat, lng]}>
             <Popup>
-              <strong>{sample.species || "Unknown Species"}</strong> <br />
-              Project: {sample.projectType || "N/A"} <br />
-              {sample.collectionDate || "No date"}
+              <strong>{sample.species}</strong>
+              <br />
+              {sample.projectType}
             </Popup>
           </Marker>
         </MapContainer>
 
-        {/* SEM + ISOLATED IMAGES */}
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Microscopy Photos
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* SEM Photo */}
-          <div className="text-center">
-            <p className="font-semibold mb-2">SEM Photo</p>
-            {sample.semPhoto ? (
-              <img
-                src={sample.semPhoto}
-                alt="SEM"
-                className="w-full h-64 object-cover rounded-lg shadow"
-              />
-            ) : (
-              <p className="text-gray-500 italic">No SEM photo available.</p>
-            )}
+        {sample.samplePhoto && (
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-gray-700 mb-3">
+              Main Sample Photo
+            </h2>
+            <img
+              src={sample.samplePhoto}
+              alt="Sample"
+              className="w-full h-72 object-cover rounded-lg shadow"
+            />
           </div>
+        )}
 
-          {/* Isolated Photo */}
-          <div className="text-center">
-            <p className="font-semibold mb-2">Isolated Photo</p>
-            {sample.isolatedPhoto ? (
-              <img
-                src={sample.isolatedPhoto}
-                alt="Isolated"
-                className="w-full h-64 object-cover rounded-lg shadow"
-              />
-            ) : (
-              <p className="text-gray-500 italic">No isolated photo available.</p>
-            )}
-          </div>
+        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+          <button
+            onClick={() => toggle("morphology")}
+            className="w-full text-left text-xl font-semibold mb-4 text-gray-700"
+          >
+            Morphology Documentation {open.morphology ? "▲" : "▼"}
+          </button>
+
+          {open.morphology && (
+            <>
+              <h3 className="text-lg font-medium mb-2">SEM Photos</h3>
+              {sample.morphology?.semPhotos?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {sample.morphology.semPhotos.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      className="w-full h-64 object-cover rounded-lg shadow"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic mb-6">
+                  No SEM photos available.
+                </p>
+              )}
+
+              <h3 className="text-lg font-medium mb-2">Microscope Photos</h3>
+              {sample.morphology?.microscopePhotos?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sample.morphology.microscopePhotos.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      className="w-full h-64 object-cover rounded-lg shadow"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">
+                  No microscope photos available.
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {/* BACK BUTTON */}
+        {/* MICROBIOLOGY */}
+        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+          <button
+            onClick={() => toggle("microbiology")}
+            className="w-full text-left text-xl font-semibold mb-4 text-gray-700"
+          >
+            Microbiology Documentation {open.microbiology ? "▲" : "▼"}
+          </button>
+
+          {open.microbiology && (
+            <>
+              <h3 className="text-lg font-medium mb-2">Petri Dish Photos</h3>
+              {sample.microbiology?.petriDishPhotos?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {sample.microbiology.petriDishPhotos.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      className="w-full h-64 object-cover rounded-lg shadow"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic mb-3">
+                  No petri dish photos available.
+                </p>
+              )}
+
+              {/* ISOLATED DESCRIPTION TABLE */}
+              <TableCard title="Isolated Description">
+                <table className="w-full text-left">
+                  <tbody>
+                    {renderRow("Colony Shape", sample.microbiology?.isolatedDescription?.colonyShape)}
+                    {renderRow("Margin", sample.microbiology?.isolatedDescription?.margin)}
+                    {renderRow("Elevation", sample.microbiology?.isolatedDescription?.elevation)}
+                    {renderRow("Color", sample.microbiology?.isolatedDescription?.color)}
+                    {renderRow("Texture", sample.microbiology?.isolatedDescription?.texture)}
+                    {renderRow("Microscopic Shape", sample.microbiology?.isolatedDescription?.microscopicShape)}
+                    {renderRow("Arrangement", sample.microbiology?.isolatedDescription?.arrangement)}
+                  </tbody>
+                </table>
+              </TableCard>
+
+              {/* ISOLATED PROFILE */}
+              <TableCard title="Isolated Profile">
+                <table className="w-full text-left">
+                  <tbody>
+                    {renderRow("Gram Reaction", sample.microbiology?.isolatedProfile?.gramReaction)}
+                    {renderRow("Motility", sample.microbiology?.isolatedProfile?.motility)}
+                    {renderRow("Oxygen Requirement", sample.microbiology?.isolatedProfile?.oxygenRequirement)}
+                    {renderRow("Halotolerance", sample.microbiology?.isolatedProfile?.halotolerance)}
+                    {renderRow("Temperature Preference", sample.microbiology?.isolatedProfile?.temperaturePreference)}
+                    {renderRow("Growth Media", sample.microbiology?.isolatedProfile?.growthMedia)}
+                  </tbody>
+                </table>
+              </TableCard>
+
+              {/* BIOCHEMICAL TESTS TABLE */}
+              <TableCard title="Biochemical Tests">
+                <table className="w-full text-left">
+                  <tbody>
+                    {Object.entries(sample.microbiology?.isolatedProfile?.biochemicalTests || {}).map(
+                      ([testName, result]) => (
+                        <tr key={testName} className="border-b">
+                          <td className="px-4 py-2 font-medium text-gray-700">
+                            {testName}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {result ? "Positive" : "Negative"}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </TableCard>
+
+              <h3 className="text-lg font-medium mt-4 mb-2">Gram Staining</h3>
+              {sample.microbiology?.gramStainingPhoto ? (
+                <img
+                  src={sample.microbiology.gramStainingPhoto}
+                  className="w-full h-64 object-cover rounded-lg shadow"
+                />
+              ) : (
+                <p className="text-gray-500 italic">No gram staining photo available.</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* MOLECULAR */}
+        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+          <button
+            onClick={() => toggle("molecular")}
+            className="w-full text-left text-xl font-semibold mb-4 text-gray-700">
+            Molecular Documentation {open.molecular ? "▲" : "▼"}
+          </button>
+
+          {open.molecular && (
+            <>
+              <TableCard title="Molecular Summary">
+                <table className="w-full text-left">
+                  <tbody>
+                    {renderRow("Marker Gene", sample.molecular?.markerGene)}
+                    {renderRow("Primer Set", sample.molecular?.primerSet)}
+                    {renderRow("PCR Conditions", sample.molecular?.pcrConditions)}
+                    {renderRow("Sequencing Platform", sample.molecular?.sequencingPlatform)}
+                  </tbody>
+                </table>
+              </TableCard>
+
+              {sample.molecular?.gelPhoto && (
+                <TableCard title="Gel Electrophoresis">
+                  <img
+                    src={sample.molecular.gelPhoto}
+                    className="w-full h-64 object-cover rounded-lg shadow"
+                  />
+                </TableCard>
+              )}
+
+              {sample.molecular?.phyloTreePhoto && (
+                <TableCard title="Phylogenetic Tree">
+                  <img
+                    src={sample.molecular.phyloTreePhoto}
+                    className="w-full h-64 object-cover rounded-lg shadow mb-4"
+                  />
+                  <p className="text-gray-700">
+                    {sample.molecular?.phyloTreeDescription || "No description"}
+                  </p>
+                </TableCard>
+              )}
+            </>
+          )}
+        </div>
+
         <div className="mt-10 flex justify-center">
           <button
             onClick={() => navigate(-1)}
