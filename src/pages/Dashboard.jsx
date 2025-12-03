@@ -42,7 +42,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSamples = async () => {
       try {
-        const res = await axios.get("https://merobase-backendv2-production-2013.up.railway.app/api/samples");
+        const res = await axios.get("http://localhost:5000/api/samples");
         setSamples(res.data);
       } catch (err) {
         console.error("Error fetching samples:", err);

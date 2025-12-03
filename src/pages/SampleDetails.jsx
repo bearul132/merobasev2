@@ -1,41 +1,18 @@
-// SampleDetails.jsx
-// (generated with option 3 table formatting and Biochemical Tests = option B)
-
+// src/pages/SampleDetails.jsx
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutDashboard, PlusCircle, Edit3, Search, ChevronRight } from "lucide-react";
+import axios from "axios";
 
 export default function SampleDetails() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { id } = useParams();
 
-  let sample = location.state?.sample;
-
-  if (!sample && id) {
-    const stored = JSON.parse(localStorage.getItem("samples") || "[]");
-    sample = stored.find((s) => s.sampleID === id);
-  }
-
-  if (!sample) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen text-center">
-        <p className="text-gray-500 mb-4">No sample selected.</p>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md"
-        >
-          Back to Dashboard
-        </button>
-      </div>
-    );
-  }
-
-  const lat = sample.latitude || -8.65;
-  const lng = sample.longitude || 115.2167;
-
+  const [sample, setSample] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [open, setOpen] = useState({
     basic: true,
     morphology: true,
@@ -45,7 +22,23 @@ export default function SampleDetails() {
 
   const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => {
+    const fetchSample = async () => {
+      try {
+        const res = await axios.get(
+          `https://merobase-backendv2-production-2013.up.railway.app/api/samples/${id}`
+        );
+        setSample(res.data);
+      } catch (err) {
+        console.error("Failed to fetch sample:", err);
+        alert("Failed to fetch sample from backend");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchSample();
+  }, [id]);
 
   const TableCard = ({ title, children }) => (
     <div className="bg-white shadow rounded-xl p-6 mb-6">
@@ -61,8 +54,34 @@ export default function SampleDetails() {
     </tr>
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600">
+        Loading sample data...
+      </div>
+    );
+  }
+
+  if (!sample) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen text-center">
+        <p className="text-gray-500 mb-4">No sample found.</p>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const lat = sample.latitude || -8.65;
+  const lng = sample.longitude || 115.2167;
+
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <div
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
@@ -116,11 +135,23 @@ export default function SampleDetails() {
         </nav>
       </div>
 
+      {/* Main content */}
       <div className="flex-1 ml-16 md:ml-64 p-8 max-w-4xl mx-auto mt-16">
         <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
           Sample Details
         </h1>
 
+        {/* Edit button */}
+        <div className="mb-6 text-right">
+          <button
+            onClick={() => navigate(`/editform/${sample.sampleID}`, { state: { sample } })}
+            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+          >
+            Edit Sample
+          </button>
+        </div>
+
+        {/* BASIC INFO */}
         <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
           <button
             onClick={() => toggle("basic")}
@@ -128,7 +159,6 @@ export default function SampleDetails() {
           >
             Basic Information {open.basic ? "▲" : "▼"}
           </button>
-
           {open.basic && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <p><strong>Sample ID:</strong> {sample.sampleID}</p>
@@ -140,17 +170,14 @@ export default function SampleDetails() {
               <p><strong>Kingdom:</strong> {sample.kingdom}</p>
               <p><strong>Project Type:</strong> {sample.projectType}</p>
               <p><strong>Collector:</strong> {sample.collectorName}</p>
-              <p><strong>Collection Date:</strong> 
-                {sample.collectionDate
-                  ? new Date(sample.collectionDate).toLocaleDateString()
-                  : "N/A"}
-              </p>
+              <p><strong>Collection Date:</strong> {sample.collectionDate ? new Date(sample.collectionDate).toLocaleDateString() : "N/A"}</p>
               <p><strong>Storage Location:</strong> {sample.storageLocation}</p>
               <p><strong>Coordinates:</strong> {lat}, {lng}</p>
             </div>
           )}
         </div>
 
+        {/* MAP */}
         <h2 className="text-xl font-semibold text-gray-700 mb-3">Sample Location</h2>
         <MapContainer
           center={[lat, lng]}
@@ -168,6 +195,7 @@ export default function SampleDetails() {
           </Marker>
         </MapContainer>
 
+        {/* MAIN PHOTO */}
         {sample.samplePhoto && (
           <div className="mb-10">
             <h2 className="text-xl font-semibold text-gray-700 mb-3">
@@ -181,6 +209,7 @@ export default function SampleDetails() {
           </div>
         )}
 
+        {/* MORPHOLOGY */}
         <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
           <button
             onClick={() => toggle("morphology")}
@@ -203,9 +232,7 @@ export default function SampleDetails() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 italic mb-6">
-                  No SEM photos available.
-                </p>
+                <p className="text-gray-500 italic mb-6">No SEM photos available.</p>
               )}
 
               <h3 className="text-lg font-medium mb-2">Microscope Photos</h3>
@@ -220,9 +247,7 @@ export default function SampleDetails() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 italic">
-                  No microscope photos available.
-                </p>
+                <p className="text-gray-500 italic">No microscope photos available.</p>
               )}
             </>
           )}
@@ -251,12 +276,10 @@ export default function SampleDetails() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 italic mb-3">
-                  No petri dish photos available.
-                </p>
+                <p className="text-gray-500 italic mb-3">No petri dish photos available.</p>
               )}
 
-              {/* ISOLATED DESCRIPTION TABLE */}
+              {/* ISOLATED DESCRIPTION */}
               <TableCard title="Isolated Description">
                 <table className="w-full text-left">
                   <tbody>
@@ -285,19 +308,15 @@ export default function SampleDetails() {
                 </table>
               </TableCard>
 
-              {/* BIOCHEMICAL TESTS TABLE */}
+              {/* BIOCHEMICAL TESTS */}
               <TableCard title="Biochemical Tests">
                 <table className="w-full text-left">
                   <tbody>
                     {Object.entries(sample.microbiology?.isolatedProfile?.biochemicalTests || {}).map(
                       ([testName, result]) => (
                         <tr key={testName} className="border-b">
-                          <td className="px-4 py-2 font-medium text-gray-700">
-                            {testName}
-                          </td>
-                          <td className="px-4 py-2 text-gray-600">
-                            {result ? "Positive" : "Negative"}
-                          </td>
+                          <td className="px-4 py-2 font-medium text-gray-700">{testName}</td>
+                          <td className="px-4 py-2 text-gray-600">{result ? "Positive" : "Negative"}</td>
                         </tr>
                       )
                     )}
@@ -322,7 +341,8 @@ export default function SampleDetails() {
         <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
           <button
             onClick={() => toggle("molecular")}
-            className="w-full text-left text-xl font-semibold mb-4 text-gray-700">
+            className="w-full text-left text-xl font-semibold mb-4 text-gray-700"
+          >
             Molecular Documentation {open.molecular ? "▲" : "▼"}
           </button>
 

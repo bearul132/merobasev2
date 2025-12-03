@@ -190,39 +190,39 @@ export default function AddNewSample({ samples, setSamples }) {
   // --- New nested microbiology state ---
   const [microbiologyState, setMicrobiologyState] = useState({
     isolatedDescription: {
-      colonyShape: "Circular",
-      colonyMargin: "Entire",
-      colonyElevation: "Flat",
-      colonyColor: "White",
-      colonyTexture: "Smooth",
-      microscopicShape: "Coccus",
-      microscopicArrangement: "Single",
+      colonyShape: "None",
+      colonyMargin: "None",
+      colonyElevation: "None",
+      colonyColor: "None",
+      colonyTexture: "None",
+      microscopicShape: "None",
+      microscopicArrangement: "None",
     },
     isolatedProfile: {
-      gramReaction: "Not tested",
-      motility: "Non-motile",
-      oxygenRequirement: "Aerobic",
-      halotolerance: "Non-halophilic",
-      temperaturePreference: "Mesophilic",
-      agarMedia: "NA",
+      gramReaction: "None",
+      motility: "None",
+      oxygenRequirement: "None",
+      halotolerance: "None",
+      temperaturePreference: "None",
+      agarMedia: "None",
       biochemicalTests: [],
     },
   });
 
   // --- New molecular state ---
   const [molecularState, setMolecularState] = useState({
-    dnaSource: "Genomic DNA",
-    extractionMethod: "CTAB Method",
-    geneTarget: "16S rRNA",
-    primerSet: "Custom Primers",
-    pcrPlatform: "Standard PCR",
-    pcrProtocol: "Standard 3-step PCR",
-    sequencingMethod: "Sanger Sequencing",
-    sequencingVendor: "Local University Lab",
-    sequenceQuality: "High Quality",
-    bioinformaticsPipeline: "BLASTn",
-    accessionType: "Not Submitted",
-    dnaConcentrationRange: "20–50 ng/µL",
+    dnaSource: "None",
+    extractionMethod: "None",
+    geneTarget: "None",
+    primerSet: "None",
+    pcrPlatform: "None",
+    pcrProtocol: "None",
+    sequencingMethod: "None",
+    sequencingVendor: "None",
+    sequenceQuality: "None",
+    bioinformaticsPipeline: "None",
+    accessionType: "None",
+    dnaConcentrationRange: "None",
   });
 
   const [phyloDescription, setPhyloDescription] = useState("");
@@ -373,9 +373,10 @@ export default function AddNewSample({ samples, setSamples }) {
       payload.molecular = uploaded.molecular;
 
       const response = await axios.post(
-        "https://merobase-backendv2-production-2013.up.railway.app/api/samples",
-        payload
+      "http://localhost:5000/api/samples",
+      payload
       );
+
 
       setSamples([...samples, response.data]);
       alert(`Sample Submitted!\nID: ${sampleID}`);
@@ -579,6 +580,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Filamentous</option>
                   <option>Rhizoid</option>
                   <option>Punctiform</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -590,6 +592,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Lobate</option>
                   <option>Curled</option>
                   <option>Filamentous</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -600,6 +603,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Raised</option>
                   <option>Convex</option>
                   <option>Umbonate</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -614,6 +618,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Red</option>
                   <option>Orange</option>
                   <option>Brown</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -625,6 +630,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Wrinkled</option>
                   <option>Mucoid</option>
                   <option>Dry</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -636,6 +642,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Vibrio</option>
                   <option>Spirillum</option>
                   <option>Filamentous</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -647,6 +654,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Chains</option>
                   <option>Clusters</option>
                   <option>Tetrads</option>
+                  <option>None</option>
                 </select>
               </div>
             </div>
@@ -660,6 +668,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Gram Negative</option>
                   <option>Gram Variable</option>
                   <option>Not tested</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -670,17 +679,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Non-motile</option>
                   <option>Swarming</option>
                   <option>Gliding</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Oxygen Requirement</label>
-                <select value={microbiologyState.isolatedProfile.oxygenRequirement} onChange={(e) => setIsolatedProfileField('oxygenRequirement', e.target.value)} className="w-full px-4 py-2 border rounded-lg">
-                  <option>Aerobic</option>
-                  <option>Anaerobic</option>
-                  <option>Facultative Anaerobe</option>
-                  <option>Microaerophile</option>
-                  <option>Aerotolerant</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -691,15 +690,7 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>Slightly halophilic</option>
                   <option>Moderately halophilic</option>
                   <option>Extremely halophilic</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Temperature Preference</label>
-                <select value={microbiologyState.isolatedProfile.temperaturePreference} onChange={(e) => setIsolatedProfileField('temperaturePreference', e.target.value)} className="w-full px-4 py-2 border rounded-lg">
-                  <option>Psychrophilic</option>
-                  <option>Mesophilic</option>
-                  <option>Thermophilic</option>
+                  <option>None</option>
                 </select>
               </div>
 
@@ -711,36 +702,49 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>PCA</option>
                   <option>R2A</option>
                   <option>MacConkey</option>
+                  <option>None</option>
                 </select>
               </div>
             </div>
 
-            {/* Biochemical Tests (multi-select checkboxes) */}
-            <div className="mt-4">
-              <label className="block mb-2 font-medium">Biochemical Tests</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {[
-                  'Catalase',
-                  'Oxidase',
-                  'Urease',
-                  'Gelatin hydrolysis',
-                  'Sulfide production',
-                  'Nitrate reduction',
-                  'Fermentation',
-                  'Indole',
-                  'Citrate'
-                ].map((test) => (
-                  <label key={test} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={(microbiologyState.isolatedProfile.biochemicalTests || []).includes(test)}
-                      onChange={() => toggleBiochemicalTest(test)}
-                    />
-                    <span className="text-sm">{test}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+{/* Biochemical Tests (multi-select checkboxes) */}
+<div className="mt-4">
+  <label className="block mb-2 font-medium">Biochemical Tests</label>
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+    {[
+      'Catalase',
+      'Oxidase',
+      'Urease',
+      'Gelatin hydrolysis',
+      'Sulfide production',
+      'Nitrate reduction',
+      'Fermentation',
+      'Indole',
+      'Citrate'
+    ].map((test) => (
+      <label key={test} className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(microbiologyState.isolatedProfile.biochemicalTests || []).includes(test)}
+          onChange={() => toggleBiochemicalTest(test)}
+        />
+        <span className="text-sm">{test}</span>
+      </label>
+    ))}
+  </div>
+
+  {/* Biochemical Tests Description */}
+  <div className="mt-3">
+    <label className="block mb-1 font-medium">Description / Notes</label>
+    <textarea
+      value={microbiologyState.isolatedProfile.biochemicalDescription || ""}
+      onChange={(e) => setIsolatedProfileField('biochemicalDescription', e.target.value)}
+      className="w-full px-4 py-2 border rounded-lg"
+      placeholder="Write additional notes about the biochemical tests here..."
+    />
+  </div>
+</div>
+
           </div>
 
           {/* Molecular */}
@@ -765,6 +769,7 @@ export default function AddNewSample({ samples, setSamples }) {
 
             <label className="block mt-2 mb-1">Marker Gene / Target</label>
             <select value={molecularState.geneTarget} onChange={(e) => setMolecularField("geneTarget", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+              <option>None</option>
               <option>16S rRNA</option>
               <option>18S rRNA</option>
               <option>23S rRNA</option>
@@ -783,6 +788,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">DNA Source</label>
                 <select value={molecularState.dnaSource} onChange={(e) => setMolecularField("dnaSource", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>Genomic DNA</option>
                   <option>Plasmid DNA</option>
                   <option>Environmental DNA (eDNA)</option>
@@ -796,6 +802,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">DNA Extraction Method</label>
                 <select value={molecularState.extractionMethod} onChange={(e) => setMolecularField("extractionMethod", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>CTAB Method</option>
                   <option>Phenol–Chloroform Extraction</option>
                   <option>Silica Column Kit (e.g., Qiagen)</option>
@@ -810,6 +817,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Primer Set Used</label>
                 <select value={molecularState.primerSet} onChange={(e) => setMolecularField("primerSet", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>27F/1492R (Universal Bacteria)</option>
                   <option>63F/1387R</option>
                   <option>8F/1492R</option>
@@ -826,6 +834,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">PCR Platform</label>
                 <select value={molecularState.pcrPlatform} onChange={(e) => setMolecularField("pcrPlatform", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>Standard PCR</option>
                   <option>Gradient PCR</option>
                   <option>Touchdown PCR</option>
@@ -838,6 +847,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">PCR Protocol Type</label>
                 <select value={molecularState.pcrProtocol} onChange={(e) => setMolecularField("pcrProtocol", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>Standard 3-step PCR</option>
                   <option>2-step PCR</option>
                   <option>Touchdown PCR</option>
@@ -850,6 +860,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Sequencing Method</label>
                 <select value={molecularState.sequencingMethod} onChange={(e) => setMolecularField("sequencingMethod", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>Sanger Sequencing</option>
                   <option>Illumina MiSeq</option>
                   <option>Illumina HiSeq</option>
@@ -864,6 +875,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Sequencing Vendor / Lab</label>
                 <select value={molecularState.sequencingVendor} onChange={(e) => setMolecularField("sequencingVendor", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>Macrogen</option>
                   <option>First Base</option>
                   <option>GeneWiz</option>
@@ -878,6 +890,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Sequence Quality</label>
                 <select value={molecularState.sequenceQuality} onChange={(e) => setMolecularField("sequenceQuality", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>High Quality</option>
                   <option>Medium Quality</option>
                   <option>Low Quality</option>
@@ -889,6 +902,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Bioinformatics Pipeline</label>
                 <select value={molecularState.bioinformaticsPipeline} onChange={(e) => setMolecularField("bioinformaticsPipeline", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>BLASTn</option>
                   <option>QIIME2</option>
                   <option>Mothur</option>
@@ -904,6 +918,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">Accession / Submission</label>
                 <select value={molecularState.accessionType} onChange={(e) => setMolecularField("accessionType", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>NCBI GenBank</option>
                   <option>BOLD</option>
                   <option>SILVA</option>
@@ -917,6 +932,7 @@ export default function AddNewSample({ samples, setSamples }) {
               <div>
                 <label className="block mb-1">DNA Concentration Range</label>
                 <select value={molecularState.dnaConcentrationRange} onChange={(e) => setMolecularField("dnaConcentrationRange", e.target.value)} className="w-full px-4 py-2 border rounded-lg">
+                  <option>None</option>
                   <option>{"<10 ng/µL"}</option>
                   <option>10–20 ng/µL</option>
                   <option>20–50 ng/µL</option>

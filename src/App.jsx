@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import AddNewSample from "./pages/AddSample";
 import SearchSample from "./pages/SearchSample";
 import EditSample from "./pages/EditSample";
+import EditForm from "./pages/Editform"; // new page
 import SampleDetails from "./pages/SampleDetails";
 
 const initialSamples = [
@@ -43,10 +44,17 @@ function App() {
           path="/addsample"
           element={<AddNewSample samples={samples} setSamples={setSamples} />}
         />
-        <Route path="/searchsample" element={<SearchSample samples={samples} />} />
+        <Route
+          path="/searchsample"
+          element={<SearchSample samples={samples} />}
+        />
         <Route
           path="/editsample"
           element={<EditSample samples={samples} setSamples={setSamples} />}
+        />
+        <Route
+          path="/editform/:id"
+          element={<EditForm samples={samples} setSamples={setSamples} />}
         />
         <Route
           path="/sampledetails/:id"
