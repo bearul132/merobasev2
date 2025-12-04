@@ -187,27 +187,36 @@ export default function AddNewSample({ samples, setSamples }) {
   const [seqFiles, setSeqFiles] = useState([]); // sequence files (.fastq .ab1 etc)
   const [seqPreviews, setSeqPreviews] = useState([]);
 
-  // --- New nested microbiology state ---
-  const [microbiologyState, setMicrobiologyState] = useState({
-    isolatedDescription: {
-      colonyShape: "None",
-      colonyMargin: "None",
-      colonyElevation: "None",
-      colonyColor: "None",
-      colonyTexture: "None",
-      microscopicShape: "None",
-      microscopicArrangement: "None",
+const [microbiologyState, setMicrobiologyState] = useState({
+  isolatedDescription: {
+    colonyShape: "None",
+    colonyMargin: "None",
+    colonyElevation: "None",
+    colonyColor: "None",
+    colonyTexture: "None",
+    microscopicShape: "None",
+    microscopicArrangement: "None",
+  },
+  isolatedProfile: {
+    gramReaction: "None",
+    motility: "None",
+    oxygenRequirement: "None",
+    halotolerance: "None",
+    temperaturePreference: "None",
+    agarMedia: "None",
+    antibacterialAssay: {
+      pathogen: "",
+      method: "",
     },
-    isolatedProfile: {
-      gramReaction: "None",
-      motility: "None",
-      oxygenRequirement: "None",
-      halotolerance: "None",
-      temperaturePreference: "None",
-      agarMedia: "None",
-      biochemicalTests: [],
+    biochemicalTests: [],
+    incubationTime: "",
+    enzymatic: "",
+    antimalarialAssay: "",
+    molecularIdentification: {
+      sequence: "",
     },
-  });
+  },
+});
 
   // --- New molecular state ---
   const [molecularState, setMolecularState] = useState({
@@ -284,6 +293,52 @@ export default function AddNewSample({ samples, setSamples }) {
     });
   };
 
+  const setIncubationTime = (value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: { ...prev.isolatedProfile, incubationTime: value },
+  }));
+};
+
+const setEnzymatic = (value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: { ...prev.isolatedProfile, enzymatic: value },
+  }));
+};
+
+const setAntimalarialAssay = (value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: { ...prev.isolatedProfile, antimalarialAssay: value },
+  }));
+};
+
+const setAntibacterialAssay = (field, value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: {
+      ...prev.isolatedProfile,
+      antibacterialAssay: {
+        ...prev.isolatedProfile.antibacterialAssay,
+        [field]: value,
+      },
+    },
+  }));
+};
+
+const setMolecularIdentification = (field, value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: {
+      ...prev.isolatedProfile,
+      molecularIdentification: {
+        ...prev.isolatedProfile.molecularIdentification,
+        [field]: value,
+      },
+    },
+  }));
+};
   // --- Handlers for molecular state ---
   const setMolecularField = (field, value) => {
     setMolecularState((prev) => ({ ...prev, [field]: value }));
@@ -671,7 +726,17 @@ export default function AddNewSample({ samples, setSamples }) {
                   <option>None</option>
                 </select>
               </div>
-
+              <div>
+                 <label className="block mb-1">Incubation Time (hours)</label>
+                  <input
+                  type="number"
+                  min="0"
+                  value={microbiologyState.isolatedProfile.incubationTime}
+                  onChange={(e) => setIncubationTime(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="e.g., 24"
+                />
+              </div>
               <div>
                 <label className="block mb-1">Motility</label>
                 <select value={microbiologyState.isolatedProfile.motility} onChange={(e) => setIsolatedProfileField('motility', e.target.value)} className="w-full px-4 py-2 border rounded-lg">
@@ -706,6 +771,47 @@ export default function AddNewSample({ samples, setSamples }) {
                 </select>
               </div>
             </div>
+            <div className="mt-6">
+  <h3 className="text-lg font-semibold mb-2">Antibacterial Assay</h3>
+
+  {/* Pathogen Dropdown */}
+  <div className="mb-4">
+    <label className="block mb-1">Pathogen</label>
+    <select
+      value={microbiologyState.isolatedProfile.antibacterialAssay.pathogen}
+      onChange={(e) => setAntibacterialAssay("pathogen", e.target.value)}
+      className="w-full px-4 py-2 border rounded-lg"
+    >
+      <option value="">Select pathogen</option>
+      <option value="Methicillin-resistant Staphylococcus aureus">Methicillin-resistant Staphylococcus aureus</option>
+      <option value="Escherichia coli">Escherichia coli</option>
+      <option value="Pseudomonas aeruginosa">Pseudomonas aeruginosa</option>
+      <option value="Bacillus subtilis">Bacillus subtilis</option>
+      <option value="Salmonella typhi">Salmonella typhi</option>
+      <option value="Salmonella typhimurium">Salmonella typhimurium</option>
+      <option value="Acinetobacter baumannii">Acinetobacter baumannii</option>
+      <option value="Klebsiella pneumoniae">Klebsiella pneumoniae</option>
+      <option value="Aeromonas hydrophila">Aeromonas hydrophila</option>
+      <option value="Vibrio parahaemolyticus">Vibrio parahaemolyticus</option>
+    </select>
+  </div>
+
+  {/* Method Dropdown */}
+  <div className="mb-4">
+    <label className="block mb-1">Method</label>
+    <select
+      value={microbiologyState.isolatedProfile.antibacterialAssay.method}
+      onChange={(e) => setAntibacterialAssay("method", e.target.value)}
+      className="w-full px-4 py-2 border rounded-lg"
+    >
+      <option value="">Select method</option>
+      <option value="Disc diffusion">Disc diffusion</option>
+      <option value="Agar well diffusion">Agar well diffusion</option>
+      <option value="Agar plug diffusion">Agar plug diffusion</option>
+      <option value="Soft agar overlay technique">Soft agar overlay technique</option>
+    </select>
+  </div>
+</div>
 
 {/* Biochemical Tests (multi-select checkboxes) */}
 <div className="mt-4">
@@ -741,6 +847,53 @@ export default function AddNewSample({ samples, setSamples }) {
       onChange={(e) => setIsolatedProfileField('biochemicalDescription', e.target.value)}
       className="w-full px-4 py-2 border rounded-lg"
       placeholder="Write additional notes about the biochemical tests here..."
+    />
+  </div>
+</div>
+
+<div>
+  <label className="block mb-1">Enzymatic</label>
+  <select
+    value={microbiologyState.isolatedProfile.enzymatic}
+    onChange={(e) => setEnzymatic(e.target.value)}
+    className="w-full px-4 py-2 border rounded-lg"
+  >
+    <option value="">Select enzyme</option>
+    <option value="Amylase">Amylase</option>
+    <option value="Protease">Protease</option>
+    <option value="Lipase">Lipase</option>
+    <option value="Cellulase">Cellulase</option>
+    <option value="Alkane Hydroxylase">Alkane Hydroxylase</option>
+    <option value="Manganese Peroxidase">Manganese Peroxidase</option>
+    <option value="Laccase">Laccase</option>
+  </select>
+</div>
+
+<div className="mt-4">
+  <label className="block mb-1">Antimalarial Assay</label>
+  <select
+    value={microbiologyState.isolatedProfile.antimalarialAssay}
+    onChange={(e) => setAntimalarialAssay(e.target.value)}
+    className="w-full px-4 py-2 border rounded-lg"
+  >
+    <option value="">Select Plasmodium species</option>
+    <option value="Plasmodium berghei">Plasmodium berghei</option>
+    <option value="Plasmodium falciparum">Plasmodium falciparum</option>
+  </select>
+</div>
+
+<div className="mt-6">
+  <h3 className="text-lg font-semibold mb-2">Molecular Identification</h3>
+
+  {/* Sequence input */}
+  <div className="mb-4">
+    <label className="block mb-1">Sequence</label>
+    <textarea
+      value={microbiologyState.isolatedProfile.molecularIdentification.sequence}
+      onChange={(e) => setMolecularIdentification("sequence", e.target.value)}
+      placeholder="Enter sequence manually"
+      className="w-full px-4 py-2 border rounded-lg"
+      rows={4}
     />
   </div>
 </div>
