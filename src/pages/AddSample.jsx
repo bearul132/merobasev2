@@ -208,10 +208,12 @@ const [microbiologyState, setMicrobiologyState] = useState({
       pathogen: "",
       method: "",
     },
-    biochemicalTests: [],
     incubationTime: "",
     enzymatic: "",
-    antimalarialAssay: "",
+    antimalarialAssay: {
+      assayResult: "",      // keep your old string here
+      biochemistry: "",    // new dropdown field
+    },
     molecularIdentification: {
       sequence: "",
     },
@@ -339,6 +341,20 @@ const setMolecularIdentification = (field, value) => {
     },
   }));
 };
+
+const setBiochemistry = (value) => {
+  setMicrobiologyState((prev) => ({
+    ...prev,
+    isolatedProfile: {
+      ...prev.isolatedProfile,
+      antimalarialAssay: {
+        ...prev.isolatedProfile.antimalarialAssay,
+        biochemistry: value,
+      },
+    },
+  }));
+};
+
   // --- Handlers for molecular state ---
   const setMolecularField = (field, value) => {
     setMolecularState((prev) => ({ ...prev, [field]: value }));
@@ -882,9 +898,23 @@ const setMolecularIdentification = (field, value) => {
   </select>
 </div>
 
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Biochemistry
+  </label>
+  <select
+    value={microbiologyState.isolatedProfile.antimalarialAssay.biochemistry || ""}
+    onChange={(e) => setBiochemistry(e.target.value)}
+    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2"
+  >
+    <option value="">Select Biochemistry</option>
+    <option value="Oxidase">Oxidase</option>
+    <option value="Katalase">Katalase</option>
+  </select>
+</div>
+
 <div className="mt-6">
   <h3 className="text-lg font-semibold mb-2">Molecular Identification</h3>
-
   {/* Sequence input */}
   <div className="mb-4">
     <label className="block mb-1">Sequence</label>
