@@ -1,12 +1,23 @@
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+// Pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import AddNewSample from "./pages/AddSample";
+import AddNewSample from "./pages/AddSample"; // old form
 import SearchSample from "./pages/SearchSample";
 import EditSample from "./pages/EditSample";
-import EditForm from "./pages/Editform"; // new page
+import EditForm from "./pages/Editform";   // ensure file name matches exactly
 import SampleDetails from "./pages/SampleDetails";
+
+// Wizard
+import AddSampleWizard from "./pages/addsample/AddSampleWizard";
+import Step1_Metadata from "./pages/addsample/Step1_Metadata";
+import Step2_Morphology from "./pages/addsample/Step2_Morphology";
+import Step3_Microbiology from "./pages/addsample/Step3_Microbiology";
+import Step4_Molecular from "./pages/addsample/Step4_Molecular";
+import Step5_Publication from "./pages/addsample/Step5_Publication";
+import Step6_ReviewSubmit from "./pages/addsample/Step6_ReviewSubmit";
 
 const initialSamples = [
   {
@@ -32,37 +43,63 @@ const initialSamples = [
   },
 ];
 
-function App() {
+export default function App() {
   const [samples, setSamples] = useState(initialSamples);
 
   return (
     <Router>
       <Routes>
+
+        {/* Login */}
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard samples={samples} />} />
+
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={<Dashboard samples={samples} />}
+        />
+
+        {/* Old single-page Add Sample */}
         <Route
           path="/addsample"
           element={<AddNewSample samples={samples} setSamples={setSamples} />}
         />
+
+        {/* NEW Multi-step Wizard */}
+        <Route path="/add" element={<AddSampleWizard />}>
+          <Route path="step1" element={<Step1_Metadata />} />
+          <Route path="step2" element={<Step2_Morphology />} />
+          <Route path="step3" element={<Step3_Microbiology />} />
+          <Route path="step4" element={<Step4_Molecular />} />
+          <Route path="step5" element={<Step5_Publication />} />
+          <Route path="review" element={<Step6_ReviewSubmit />} />
+        </Route>
+
+        {/* Search */}
         <Route
           path="/searchsample"
           element={<SearchSample samples={samples} />}
         />
+
+        {/* Edit Sample */}
         <Route
           path="/editsample"
           element={<EditSample samples={samples} setSamples={setSamples} />}
         />
+
+        {/* Edit Form */}
         <Route
           path="/editform/:id"
           element={<EditForm samples={samples} setSamples={setSamples} />}
         />
+
+        {/* Details */}
         <Route
           path="/sampledetails/:id"
           element={<SampleDetails samples={samples} />}
         />
+
       </Routes>
     </Router>
   );
 }
-
-export default App;

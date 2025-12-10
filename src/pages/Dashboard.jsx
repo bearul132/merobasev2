@@ -33,10 +33,10 @@ const kingdomColors = {
   Other: "#EF4444"
 };
 
-export default function Dashboard() {
+export default function Dashboard({ samples: initialSamples }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [samples, setSamples] = useState([]);
+  const [samples, setSamples] = useState(initialSamples || []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function Dashboard() {
         setSamples(res.data);
       } catch (err) {
         console.error("Error fetching samples:", err);
-        setSamples([]);
+        setSamples(initialSamples || []);
       } finally {
         setLoading(false);
       }
@@ -62,7 +62,7 @@ export default function Dashboard() {
     );
   }
 
-  // Aggregate data (handle empty array)
+  // Aggregate data
   const kingdomCounts = Object.entries(
     samples.reduce(
       (acc, s) => ({ ...acc, [s.kingdom || "Other"]: (acc[s.kingdom || "Other"] || 0) + 1 }),
@@ -87,7 +87,6 @@ export default function Dashboard() {
   const latestRegistered = samples[samples.length - 1] || {};
   const latestEdited = samples[0] || {};
 
-  // KPI Metrics
   const totalSamples = samples.length;
   const totalProjects = new Set(samples.map(s => s.projectType)).size;
   const totalKingdoms = new Set(samples.map(s => s.kingdom)).size;
@@ -102,7 +101,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen font-sans bg-gray-100">
-      {/* COLLAPSIBLE SIDEBAR */}
+      {/* Sidebar */}
       <div
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
@@ -126,7 +125,7 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={() => navigate("/addsample")}
+            onClick={() => navigate("/add/step1")} // Redirect to wizard first step
             className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-green-50 transition rounded-lg"
           >
             <PlusCircle className="text-green-600" />
@@ -151,11 +150,11 @@ export default function Dashboard() {
         </nav>
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* Main Content */}
       <main className="flex-1 ml-16 md:ml-64 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">MEROBase Dashboard</h1>
 
-        {/* KPI CARDS */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           {kpiData.map((kpi, idx) => (
             <div
@@ -170,7 +169,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Latest Registered & Latest Edited */}
+        {/* Latest Registered & Edited */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {[{
             label: "Latest Registered",
@@ -205,52 +204,36 @@ export default function Dashboard() {
             className="w-full md:w-4/5 h-96 rounded-xl shadow mx-auto"
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-            {samples.length > 0 ? (
-              samples.map((s) => (
-                <Marker key={s._id} position={[Number(s.latitude), Number(s.longitude)]}>
-                  <Popup>
-                    <strong>{s.species}</strong>
-                    <br />
-                    Project: {s.projectType}
-                    <br />
-                    Date: {s.collectionDate}
-                  </Popup>
-                </Marker>
-              ))
-            ) : (
-              <></>
-            )}
+            {samples.map((s) => (
+              <Marker key={s._id} position={[Number(s.latitude), Number(s.longitude)]}>
+                <Popup>
+                  <strong>{s.species}</strong>
+                  <br />
+                  Project: {s.projectType}
+                  <br />
+                  Date: {s.collectionDate}
+                </Popup>
+              </Marker>
+            ))}
           </MapContainer>
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Kingdom Chart */}
           <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">
-              Kingdom Types
-            </h3>
-
+            <h3 className="text-xl font-semibold text-gray-700 mb-4">Kingdom Types</h3>
             <PieChart width={250} height={250}>
               <Pie data={kingdomCounts} dataKey="value" nameKey="name" outerRadius={80} label>
                 {kingdomCounts.map((entry, index) => (
-                  <Cell
-                    key={index}
-                    fill={kingdomColors[entry.name] || "#D1D5DB"}
-                  />
+                  <Cell key={index} fill={kingdomColors[entry.name] || "#D1D5DB"} />
                 ))}
               </Pie>
               <Tooltip />
             </PieChart>
           </div>
 
-          {/* Project Types */}
           <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">
-              Project Types
-            </h3>
-
+            <h3 className="text-xl font-semibold text-gray-700 mb-4">Project Types</h3>
             <BarChart width={250} height={250} data={projectCounts}>
               <XAxis dataKey="name" />
               <YAxis />
@@ -259,12 +242,8 @@ export default function Dashboard() {
             </BarChart>
           </div>
 
-          {/* Date Acquired */}
           <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">
-              Date Acquired
-            </h3>
-
+            <h3 className="text-xl font-semibold text-gray-700 mb-4">Date Acquired</h3>
             <LineChart width={250} height={250} data={dateCounts}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
