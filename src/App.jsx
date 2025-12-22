@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // Pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import AddNewSample from "./pages/AddSample"; // old form
 import SearchSample from "./pages/SearchSample";
 import EditSample from "./pages/EditSample";
-import EditForm from "./pages/Editform";   // ensure file name matches exactly
 import SampleDetails from "./pages/SampleDetails";
 
 // Wizard
@@ -37,8 +35,6 @@ const initialSamples = [
     latitude: -8.65,
     longitude: 115.22,
     samplePhoto: null,
-    semPhoto: null,
-    isolatedPhoto: null,
     lastEdited: new Date(),
   },
 ];
@@ -59,14 +55,9 @@ export default function App() {
           element={<Dashboard samples={samples} />}
         />
 
-        {/* Old single-page Add Sample */}
-        <Route
-          path="/addsample"
-          element={<AddNewSample samples={samples} setSamples={setSamples} />}
-        />
-
-        {/* NEW Multi-step Wizard */}
+        {/* ================= ADD SAMPLE WIZARD ================= */}
         <Route path="/add" element={<AddSampleWizard />}>
+          <Route index element={<Navigate to="step1" replace />} />
           <Route path="step1" element={<Step1_Metadata />} />
           <Route path="step2" element={<Step2_Morphology />} />
           <Route path="step3" element={<Step3_Microbiology />} />
@@ -74,6 +65,9 @@ export default function App() {
           <Route path="step5" element={<Step5_Publication />} />
           <Route path="review" element={<Step6_ReviewSubmit />} />
         </Route>
+
+        {/* Backward compatibility (optional safety) */}
+        <Route path="/addsample" element={<Navigate to="/add/step1" replace />} />
 
         {/* Search */}
         <Route
@@ -87,17 +81,14 @@ export default function App() {
           element={<EditSample samples={samples} setSamples={setSamples} />}
         />
 
-        {/* Edit Form */}
-        <Route
-          path="/editform/:id"
-          element={<EditForm samples={samples} setSamples={setSamples} />}
-        />
-
         {/* Details */}
         <Route
           path="/sampledetails/:id"
           element={<SampleDetails samples={samples} />}
         />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
     </Router>

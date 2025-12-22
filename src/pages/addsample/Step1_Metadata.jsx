@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import FormProgressBar from "../../components/FormProgressBar";
 
 export default function Step1_Metadata({ wizardData = {}, setWizardData = () => {} }) {
   const navigate = useNavigate();
@@ -32,6 +33,8 @@ export default function Step1_Metadata({ wizardData = {}, setWizardData = () => 
 
   const tulambenSites = ["USAT Liberty", "Tulamben Drop Off", "Kubu Wall", "Pyramids", "Batu Kelebit"];
   const substrateOptions = ["Sand", "Rock", "Coral", "Mud", "Other"];
+  const kingdoms = ["Undecided", "Animalia", "Plantae", "Fungi", "Other"];
+  const storageOptions = ["Cool Room", "Freezer", "Refrigerator", "Room Temperature"];
 
   const handleChange = (field, value) => {
     setLocalData(prev => ({ ...prev, [field]: value }));
@@ -67,7 +70,10 @@ export default function Step1_Metadata({ wizardData = {}, setWizardData = () => 
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen flex justify-center">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 space-y-8">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 space-y-6">
+        {/* Progress Bar */}
+        <FormProgressBar step={1} steps={6} />
+
         <h2 className="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">
           Step 1: Metadata
         </h2>
@@ -96,224 +102,207 @@ export default function Step1_Metadata({ wizardData = {}, setWizardData = () => 
           </div>
         </div>
 
-        {/* General Info */}
+        {/* General Metadata Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Sample Type */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Sample Type</label>
             <select
               value={localData.sampleType}
               onChange={e => handleChange("sampleType", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="Biological">Biological</option>
               <option value="Non-Biological">Non-Biological</option>
             </select>
           </div>
 
-          {/* Sample Name */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Sample Name</label>
             <input
               type="text"
               value={localData.sampleName}
               onChange={e => handleChange("sampleName", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Sample Number */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Sample Number</label>
             <input
               type="text"
               value={localData.sampleNumber}
               onChange={e => handleChange("sampleNumber", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Sample Length */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Sample Length (cm)</label>
             <input
               type="number"
               value={localData.sampleLength}
               onChange={e => handleChange("sampleLength", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Dive Site */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Dive Site</label>
             <select
               value={localData.diveSite}
               onChange={e => handleChange("diveSite", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="">Select Dive Site</option>
-              {tulambenSites.map(site => (
-                <option key={site} value={site}>{site}</option>
-              ))}
+              {tulambenSites.map(site => <option key={site} value={site}>{site}</option>)}
             </select>
           </div>
 
-          {/* Depth */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Depth (m)</label>
             <input
               type="number"
               value={localData.depth}
               onChange={e => handleChange("depth", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Temperature */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Temperature (°C)</label>
             <input
               type="number"
               value={localData.temperature}
               onChange={e => handleChange("temperature", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Substrate */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Substrate</label>
             <select
               value={localData.substrate}
               onChange={e => handleChange("substrate", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="">Select Substrate</option>
-              {substrateOptions.map(sub => (
-                <option key={sub} value={sub}>{sub}</option>
-              ))}
+              {substrateOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          {/* Project Type */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Project Type</label>
             <select
               value={localData.projectType}
               onChange={e => handleChange("projectType", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="A">A</option>
               <option value="B">B</option>
             </select>
           </div>
 
-          {/* Project Number */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Project Number</label>
             <input
               type="text"
               value={localData.projectNumber}
               onChange={e => handleChange("projectNumber", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Collector Name */}
           <div>
             <label className="block font-medium text-gray-600 mb-1">Collector Name</label>
             <input
               type="text"
               value={localData.collectorName}
               onChange={e => handleChange("collectorName", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
         </div>
 
-        {/* Biological Fields */}
-        {localData.sampleType === "Biological" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
+        {/* Conditional Biological / Non-Biological Fields */}
+        {localData.sampleType === "Biological" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div>
               <label className="block font-medium text-gray-600 mb-1">Kingdom</label>
               <select
                 value={localData.kingdom}
                 onChange={e => handleChange("kingdom", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
               >
-                <option value="Undecided">Undecided</option>
-                <option value="Animalia">Animalia</option>
-                <option value="Plantae">Plantae</option>
-                <option value="Fungi">Fungi</option>
-                <option value="Other">Other</option>
+                {kingdoms.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
-
             <div>
               <label className="block font-medium text-gray-600 mb-1">Genus</label>
               <input
                 type="text"
                 value={localData.genus}
                 onChange={e => handleChange("genus", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
-
             <div>
               <label className="block font-medium text-gray-600 mb-1">Family</label>
               <input
                 type="text"
                 value={localData.family}
                 onChange={e => handleChange("family", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
-
             <div>
               <label className="block font-medium text-gray-600 mb-1">Species</label>
               <input
                 type="text"
                 value={localData.species}
                 onChange={e => handleChange("species", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block font-medium text-gray-600 mb-1">Storage Location</label>
+              <select
+                value={localData.storageLocation}
+                onChange={e => handleChange("storageLocation", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              >
+                {storageOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <label className="block font-medium text-gray-600 mb-1">Storage Location</label>
+            <select
+              value={localData.storageLocation}
+              onChange={e => handleChange("storageLocation", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            >
+              {storageOptions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
         )}
 
-        {/* Storage Location */}
-        <div>
-          <label className="block font-medium text-gray-600 mb-1">Storage Location</label>
-          <select
-            value={localData.storageLocation}
-            onChange={e => handleChange("storageLocation", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="Cool Room">Cool Room</option>
-            <option value="Freezer">Freezer</option>
-            <option value="Refrigerator">Refrigerator</option>
-            <option value="Room Temperature">Room Temperature</option>
-          </select>
-        </div>
-
-        {/* Map */}
-        <div className="h-64 w-full rounded-lg overflow-hidden shadow-md">
+        {/* Map Picker */}
+        <div className="h-64 w-full rounded-lg overflow-hidden shadow-md mt-4">
           <MapContainer center={[-8.342, 115.544]} zoom={13} className="w-full h-full">
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <LocationMarker />
           </MapContainer>
         </div>
 
-        {/* Latitude & Longitude */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           <div>
             <label className="block font-medium text-gray-600 mb-1">Latitude</label>
             <input
               type="number"
               value={localData.latitude}
               onChange={e => handleChange("latitude", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
           <div>
@@ -322,19 +311,26 @@ export default function Step1_Metadata({ wizardData = {}, setWizardData = () => 
               type="number"
               value={localData.longitude}
               onChange={e => handleChange("longitude", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
             />
           </div>
         </div>
 
-        {/* Cancel Button */}
-        <div className="flex justify-end">
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
             className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/add/step2")}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+          >
+            Next
           </button>
         </div>
       </div>

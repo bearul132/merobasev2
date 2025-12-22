@@ -1,281 +1,339 @@
-// src/pages/Step3_Microbiology.jsx
-import React, { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSampleFormContext } from '../../context/SampleFormContext';
-import StepNavigation from '../../components/StepNavigation';
-import FormProgressBar from '../../components/FormProgressBar';
+import React, { useRef } from "react";
+import { useSampleFormContext } from "../../context/SampleFormContext";
+import StepNavigation from "../../components/StepNavigation";
+import FormProgressBar from "../../components/FormProgressBar";
 
 export default function Step3_Microbiology() {
   const { formData, updateSection } = useSampleFormContext();
-  const navigate = useNavigate();
-  const micro = formData.microbiology;
 
-  const isolatedInputRef = useRef();
-  const microInputRef = useRef();
-
-  // Handle dropdown changes for isolatedDescription
-  const handleIsolatedDescChange = (field, value) => {
-    updateSection('microbiology', {
-      isolatedDescription: {
-        ...micro.isolatedDescription,
-        [field]: value
-      }
-    });
+  /* ================= SAFE DEFAULT STRUCTURE ================= */
+  const micro = {
+    storageBox: { boxID: "", shelf: "", position: "", temperature: "", notes: "" },
+    images: { isolated: null, macroscopic: null, microscopic: null },
+    isolatedDescription: { shape: "", margin: "", elevation: "", color: "", texture: "" },
+    macroscopicMorphology: { shape: "", arrangement: "" },
+    microscopicMorphology: { shape: "", arrangement: "" },
+    isolatedProfile: {
+      gramReaction: "",
+      motility: "",
+      oxygenRequirement: "",
+      temperaturePreference: "",
+      agarMedia: "",
+      incubationTime: "",
+      enzymatic: ""
+    },
+    antibacterialAssay: { pathogen: "", method: "", antimalarial: "", molecularID: "" },
+    biochemicalTests: [],
+    testNotes: "",
+    ...formData.microbiology
   };
 
-  // Handle dropdown changes for isolatedProfile
-  const handleIsolatedProfileChange = (field, value) => {
-    updateSection('microbiology', {
-      isolatedProfile: {
-        ...micro.isolatedProfile,
-        [field]: value
-      }
-    });
-  };
+  /* ================= REFS ================= */
+  const isolatedRef = useRef();
+  const macroRef = useRef();
+  const microRef = useRef();
 
-  // Handle image uploads
-  const handleImageChange = (file, type) => {
+  /* ================= IMAGE HANDLING ================= */
+  const handleImage = (file, type) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      updateSection('microbiology', {
+      updateSection("microbiology", {
         images: { ...micro.images, [type]: reader.result }
       });
     };
     reader.readAsDataURL(file);
   };
 
-  // Drag & Drop handler
   const handleDrop = (e, type) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageChange(e.dataTransfer.files[0], type);
-    }
+    if (e.dataTransfer.files?.[0]) handleImage(e.dataTransfer.files[0], type);
   };
 
-  // Toggle biochemical test
+  /* ================= BIOCHEM TOGGLE ================= */
   const toggleTest = (test) => {
-    const arr = micro.biochemicalTests || [];
-    const exists = arr.includes(test);
-    const updated = exists ? arr.filter(x => x !== test) : [...arr, test];
-    updateSection('microbiology', { biochemicalTests: updated });
+    updateSection("microbiology", {
+      biochemicalTests: micro.biochemicalTests.includes(test)
+        ? micro.biochemicalTests.filter((t) => t !== test)
+        : [...micro.biochemicalTests, test]
+    });
   };
 
   return (
     <div className="container mx-auto p-4">
       <FormProgressBar step={3} steps={6} />
-      <h3 className="font-semibold mb-2">Microbiology</h3>
+      <h3 className="font-semibold mb-4">Microbiology</h3>
 
-      <div className="grid gap-4">
+      <div className="grid gap-6">
 
-        {/* Sample Storage Box */}
-        <div className="border p-4 rounded bg-gray-50">
-          <h4 className="font-medium mb-2">Sample Storage Box</h4>
-          <div className="grid gap-2">
-            <div>
-              <label className="block mb-1">Box ID</label>
+        {/* ================= SAMPLE STORAGE BOX ================= */}
+        <section className="border p-4 rounded bg-gray-50">
+          <h4 className="font-medium mb-3">Sample Storage Box</h4>
+          {[
+            ["boxID", "Box ID"],
+            ["shelf", "Shelf"],
+            ["position", "Position in Box"],
+            ["temperature", "Storage Temperature"]
+          ].map(([key, label]) => (
+            <div key={key} className="mb-2">
+              <label className="block mb-1">{label}</label>
               <input
-                type="text"
-                value={micro.storageBox?.boxID || ''}
+                className="w-full p-2 border rounded"
+                value={micro.storageBox[key]}
                 onChange={(e) =>
-                  updateSection('microbiology', {
-                    storageBox: { ...micro.storageBox, boxID: e.target.value }
+                  updateSection("microbiology", {
+                    storageBox: { ...micro.storageBox, [key]: e.target.value }
                   })
                 }
-                className="w-full p-2 border rounded"
-                placeholder="e.g., Box A"
               />
             </div>
+          ))}
+          <label className="block mt-2 mb-1">Notes</label>
+          <textarea
+            className="w-full p-2 border rounded"
+            value={micro.storageBox.notes}
+            onChange={(e) =>
+              updateSection("microbiology", {
+                storageBox: { ...micro.storageBox, notes: e.target.value }
+              })
+            }
+          />
+        </section>
 
-            <div>
-              <label className="block mb-1">Shelf</label>
-              <input
-                type="text"
-                value={micro.storageBox?.shelf || ''}
-                onChange={(e) =>
-                  updateSection('microbiology', {
-                    storageBox: { ...micro.storageBox, shelf: e.target.value }
-                  })
-                }
-                className="w-full p-2 border rounded"
-                placeholder="e.g., Shelf 2"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1">Position in Box</label>
-              <input
-                type="text"
-                value={micro.storageBox?.position || ''}
-                onChange={(e) =>
-                  updateSection('microbiology', {
-                    storageBox: { ...micro.storageBox, position: e.target.value }
-                  })
-                }
-                className="w-full p-2 border rounded"
-                placeholder="e.g., Slot 3"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1">Storage Temperature</label>
-              <select
-                value={micro.storageBox?.temperature || ''}
-                onChange={(e) =>
-                  updateSection('microbiology', {
-                    storageBox: { ...micro.storageBox, temperature: e.target.value }
-                  })
-                }
-                className="w-full p-2 border rounded"
-              >
-                <option value="">Select temperature</option>
-                <option value="4C">Refrigerator 4°C</option>
-                <option value="-20C">Freezer -20°C</option>
-                <option value="Room">Room Temperature</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block mb-1">Notes</label>
-              <textarea
-                value={micro.storageBox?.notes || ''}
-                onChange={(e) =>
-                  updateSection('microbiology', {
-                    storageBox: { ...micro.storageBox, notes: e.target.value }
-                  })
-                }
-                className="w-full p-2 border rounded"
-                placeholder="Any extra notes about the sample"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Isolated Image Upload (Top) */}
+        {/* ================= ISOLATED IMAGE ================= */}
         <div
           className="border border-dashed p-4 rounded text-center cursor-pointer"
-          onClick={() => isolatedInputRef.current.click()}
-          onDrop={(e) => handleDrop(e, 'isolated')}
+          onClick={() => isolatedRef.current.click()}
+          onDrop={(e) => handleDrop(e, "isolated")}
           onDragOver={(e) => e.preventDefault()}
         >
-          <p className="text-sm mb-2">Drag & drop isolated image here, or click to select</p>
-          {micro.images?.isolated && (
-            <img
-              src={micro.images.isolated}
-              alt="isolated preview"
-              className="mt-2 max-w-xs mx-auto border rounded"
-            />
+          <p className="text-sm">Drag & Drop Isolated Image Here</p>
+          {micro.images.isolated && (
+            <img src={micro.images.isolated} className="mx-auto mt-2 max-w-xs rounded" />
           )}
           <input
-            ref={isolatedInputRef}
+            ref={isolatedRef}
             type="file"
-            accept="image/*"
             className="hidden"
-            onChange={(e) => e.target.files[0] && handleImageChange(e.target.files[0], 'isolated')}
+            accept="image/*"
+            onChange={(e) => e.target.files[0] && handleImage(e.target.files[0], "isolated")}
           />
         </div>
 
-        {/* Isolated Description */}
-        <div className="grid gap-2 border p-2 rounded">
-          <h4 className="font-medium mb-1">Isolated Description (Colony + Microscopic)</h4>
+        {/* ================= ISOLATED DESCRIPTION ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-3">Isolated Description</h4>
           {[
-            ['colonyShape','Shape',['Circular','Irregular','Filamentous','Rhizoid','Spindle']],
-            ['colonyMargin','Margin',['Entire','Undulate','Lobate','Filamentous']],
-            ['colonyElevation','Elevation',['Flat','Raised','Convex','Umbonate','Pulvinate']],
-            ['colonyColor','Color',['White','Cream','Yellow','Orange','Pink','Red','Brown','Green']],
-            ['colonyTexture','Texture',['Smooth','Rough','Mucoid','Dry','Wrinkled']],
-            ['microscopicShape','Microscopic Shape',['Coccus','Rod','Vibrio','Spirillum','Filamentous']],
-            ['microscopicArrangement','Microscopic Arrangement',['Single','Pair','Chains','Clusters','Tetrads']]
-          ].map(([field,label,options]) => (
-            <div key={field}>
+            ["shape", "Shape", ["Circular", "Irregular", "Filamentous", "Rhizoid", "Punctiform"]],
+            ["margin", "Margin", ["Entire", "Undulate", "Lobate", "Curled", "Filamentous"]],
+            ["elevation", "Elevation", ["Flat", "Raised", "Convex", "Umbonate", "Pulvinate"]],
+            ["color", "Color", ["White","Cream","Yellow","Orange","Pink","Red","Brown","Green","Transparent"]],
+            ["texture", "Texture", ["Smooth","Rough","Mucoid","Dry","Wrinkled"]]
+          ].map(([key, label, options]) => (
+            <div key={key} className="mb-2">
               <label className="block mb-1">{label}</label>
               <select
-                value={micro.isolatedDescription?.[field] || ''}
-                onChange={(e) => handleIsolatedDescChange(field, e.target.value)}
                 className="w-full p-2 border rounded"
+                value={micro.isolatedDescription[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    isolatedDescription: { ...micro.isolatedDescription, [key]: e.target.value }
+                  })
+                }
               >
                 <option value="">Select {label}</option>
-                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {options.map((o) => <option key={o}>{o}</option>)}
               </select>
             </div>
           ))}
-        </div>
+        </section>
 
-        {/* Microscopic Image Upload */}
+        {/* ================= MACROSCOPIC IMAGE ================= */}
         <div
           className="border border-dashed p-4 rounded text-center cursor-pointer"
-          onClick={() => microInputRef.current.click()}
-          onDrop={(e) => handleDrop(e, 'microscopic')}
+          onClick={() => macroRef.current.click()}
+          onDrop={(e) => handleDrop(e, "macroscopic")}
           onDragOver={(e) => e.preventDefault()}
         >
-          <p className="text-sm mb-2">Drag & drop microscopic image here, or click to select</p>
-          {micro.images?.microscopic && (
-            <img
-              src={micro.images.microscopic}
-              alt="microscopic preview"
-              className="mt-2 max-w-xs mx-auto border rounded"
-            />
+          <p className="text-sm">Drag & Drop Macroscopic Image Here</p>
+          {micro.images.macroscopic && (
+            <img src={micro.images.macroscopic} className="mx-auto mt-2 max-w-xs rounded" />
           )}
           <input
-            ref={microInputRef}
+            ref={macroRef}
             type="file"
-            accept="image/*"
             className="hidden"
-            onChange={(e) => e.target.files[0] && handleImageChange(e.target.files[0], 'microscopic')}
+            accept="image/*"
+            onChange={(e) => e.target.files[0] && handleImage(e.target.files[0], "macroscopic")}
           />
         </div>
 
-        {/* Isolated Profile */}
-        <div className="grid gap-2 border p-2 rounded">
-          <h4 className="font-medium mb-1">Isolated Profile (Functional / Physiological)</h4>
+        {/* ================= MACROSCOPIC MORPHOLOGY ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-3">Macroscopic Morphology</h4>
           {[
-            ['gramReaction','Gram Reaction',['Positive','Negative','Variable']],
-            ['motility','Motility',['Motile','Non-motile','Swarming','Gliding']],
-            ['oxygenRequirement','Oxygen Requirement',['Aerobic','Anaerobic','Facultative','Microaerophilic']],
-            ['halotolerance','Halotolerance',['Non-halophilic','Slightly halophilic','Moderately halophilic','Extremely halophilic']],
-            ['temperaturePreference','Temperature Preference',['Psychrophilic','Mesophilic','Thermophilic']],
-            ['agarMedia','Agar Media',['NA','TSA','PCA','R2A','MacConkey','Marine Agar']],
-            ['incubationTime','Incubation Time (h)',['12','24','48','72','>72']],
-            ['enzymatic','Enzymatic',['Amylase','Protease','Lipase','DNase','Catalase','Oxidase']],
-            ['antibacterialAssay','Antibacterial Assay',['MRSA','E. coli','P. aeruginosa','B. subtilis','Salmonella typhi','S. typhimurium']],
-            ['antimalarialAssay','Antimalarial Assay',['Plasmodium falciparum','P. vivax','P. malariae','P. ovale']],
-            ['molecularIdentification','Molecular ID',['16S rRNA','ITS','COI','Other']]
-          ].map(([field,label,options]) => (
-            <div key={field}>
+            ["shape", "Macroscopic Shape", ["Circular", "Irregular", "Filamentous"]],
+            ["arrangement", "Macroscopic Arrangement", ["Single","Paired","Clustered","Spreading"]]
+          ].map(([key, label, options]) => (
+            <div key={key} className="mb-2">
               <label className="block mb-1">{label}</label>
               <select
-                value={micro.isolatedProfile?.[field] || ''}
-                onChange={(e) => handleIsolatedProfileChange(field, e.target.value)}
                 className="w-full p-2 border rounded"
+                value={micro.macroscopicMorphology[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    macroscopicMorphology: { ...micro.macroscopicMorphology, [key]: e.target.value }
+                  })
+                }
               >
                 <option value="">Select {label}</option>
-                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {options.map((o) => <option key={o}>{o}</option>)}
               </select>
             </div>
           ))}
+        </section>
+
+        {/* ================= MICROSCOPIC IMAGE ================= */}
+        <div
+          className="border border-dashed p-4 rounded text-center cursor-pointer"
+          onClick={() => microRef.current.click()}
+          onDrop={(e) => handleDrop(e, "microscopic")}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <p className="text-sm">Drag & Drop Microscopic Image Here</p>
+          {micro.images.microscopic && (
+            <img src={micro.images.microscopic} className="mx-auto mt-2 max-w-xs rounded" />
+          )}
+          <input
+            ref={microRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => e.target.files[0] && handleImage(e.target.files[0], "microscopic")}
+          />
         </div>
 
-        {/* Biochemical Tests (Bottom) */}
-        <div>
-          <label className="block mb-1">Biochemical Tests</label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {[
-              'Catalase','Oxidase','Urease','Gelatin hydrolysis','Sulfide production',
-              'Nitrate reduction','Fermentation','Indole','Citrate'
-            ].map(t => (
-              <label key={t} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={(micro.biochemicalTests || []).includes(t)}
-                  onChange={() => toggleTest(t)}
-                />
-                <span className="text-sm">{t}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+        {/* ================= MICROSCOPIC MORPHOLOGY ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-3">Microscopic Morphology</h4>
+          {[
+            ["shape", "Microscopic Shape", ["Coccus","Bacillus","Vibrio","Spirillum","Filamentous"]],
+            ["arrangement", "Microscopic Arrangement", ["Single","Diplo","Strepto","Staphylo","Palisade"]]
+          ].map(([key, label, options]) => (
+            <div key={key} className="mb-2">
+              <label className="block mb-1">{label}</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={micro.microscopicMorphology[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    microscopicMorphology: { ...micro.microscopicMorphology, [key]: e.target.value }
+                  })
+                }
+              >
+                <option value="">Select {label}</option>
+                {options.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+        </section>
 
-        {/* Step Navigation */}
-        <StepNavigation backPath={'/add/step2'} nextPath={'/add/step4'} />
+        {/* ================= ISOLATED PROFILE ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-3">Isolated Profile</h4>
+          {[
+            ["gramReaction", "Gram Reaction", ["Gram Positive","Gram Negative","Gram Variable","Not Tested"]],
+            ["motility", "Motility", ["Motile","Non-motile","Swarming","Gliding"]],
+            ["oxygenRequirement", "Oxygen Requirement", ["Aerobic","Anaerobic","Facultative anaerobe","Microaerophilic"]],
+            ["agarMedia", "Agar Media", ["NA","TSA","PCA","R2A","Marine Agar","MacConkey"]],
+            ["enzymatic", "Enzymatic", ["Amylase","Protease","Lipase","DNase","Cellulase","Chitinase"]]
+          ].map(([key,label,options]) => (
+            <div key={key} className="mb-2">
+              <label className="block mb-1">{label}</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={micro.isolatedProfile[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    isolatedProfile: { ...micro.isolatedProfile, [key]: e.target.value }
+                  })
+                }
+              >
+                <option value="">Select {label}</option>
+                {options.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+          {["temperaturePreference","incubationTime"].map((key) => (
+            <div key={key} className="mb-2">
+              <label className="block mb-1">{key}</label>
+              <input
+                className="w-full p-2 border rounded"
+                value={micro.isolatedProfile[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    isolatedProfile: { ...micro.isolatedProfile, [key]: e.target.value }
+                  })
+                }
+              />
+            </div>
+          ))}
+        </section>
+
+        {/* ================= ANTIBACTERIAL ASSAY ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-3">Antibacterial Assay</h4>
+          {[
+            ["pathogen","Pathogen",["E. coli","S. aureus","P. aeruginosa","V. harveyi","B. subtilis"]],
+            ["method","Method",["Disk diffusion","Well diffusion","MIC","MBC"]],
+            ["antimalarial","Antimalarial Assay",["Positive","Negative","Not tested"]],
+            ["molecularID","Molecular ID",["16S rRNA","ITS","COI","rbcL"]]
+          ].map(([key,label,options]) => (
+            <div key={key} className="mb-2">
+              <label className="block mb-1">{label}</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={micro.antibacterialAssay[key]}
+                onChange={(e) =>
+                  updateSection("microbiology", {
+                    antibacterialAssay: { ...micro.antibacterialAssay, [key]: e.target.value }
+                  })
+                }
+              >
+                <option value="">Select {label}</option>
+                {options.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+        </section>
+
+        {/* ================= BIOCHEMICAL TESTS ================= */}
+        <section className="border p-4 rounded">
+          <h4 className="font-medium mb-2">Biochemical Tests</h4>
+          {[
+            "Catalase","Oxidase","Urease","Gelatin hydrolysis",
+            "Sulfide production","Nitrate reduction",
+            "Fermentation","Indole","Citrate"
+          ].map((test) => (
+            <label key={test} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={micro.biochemicalTests.includes(test)}
+                onChange={() => toggleTest(test)}
+              />
+              {test}
+            </label>
+          ))}
+          <label className="block mt-2 mb-1">Test Notes</label>
+          <textarea
+            className="w-full p-2 border rounded"
+            value={micro.testNotes}
+            onChange={(e) =>
+              updateSection("microbiology", { testNotes: e.target.value })
+            }
+          />
+        </section>
+
+        <StepNavigation backPath="/add/step2" nextPath="/add/step4" />
       </div>
     </div>
   );
