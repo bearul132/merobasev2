@@ -1,207 +1,209 @@
-// src/pages/EditSample.jsx
-import { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { LayoutDashboard, Search, ChevronRight } from "lucide-react";
+import { useSampleFormContext } from "../context/SampleFormContext";
 import { DateRange } from "react-date-range";
-import { format } from "date-fns";
+import {
+  LayoutDashboard,
+  Search,
+  Edit3,
+  ChevronRight
+} from "lucide-react";
+
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 
-const kingdoms = ["All", "Animalia", "Plantae", "Fungi", "Protista", "Undecided"];
-const projectTypes = ["All", "A", "B"];
+/* ================= CONSTANTS ================= */
+
+const KINGDOMS = ["All", "Animalia", "Plantae", "Fungi", "Protista", "Undecided"];
+const PROJECTS = ["All", "A", "B", "C"];
+const SAMPLE_TYPES = ["All", "Biological", "Non Biological"];
+
+/* ================= COMPONENT ================= */
 
 export default function EditSample() {
   const navigate = useNavigate();
+  const { loadSampleForEdit } = useSampleFormContext();
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [samples, setSamples] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Filters
-  const [searchText, setSearchText] = useState("");
-  const [selectedKingdom, setSelectedKingdom] = useState("All");
-  const [selectedProjectType, setSelectedProjectType] = useState("All");
+  /* ===== Filters ===== */
+  const [search, setSearch] = useState("");
+  const [kingdom, setKingdom] = useState("All");
+  const [projectType, setProjectType] = useState("All");
+  const [sampleType, setSampleType] = useState("All");
 
-  // Date range picker
-  const [dateRange, setDateRange] = useState([{ startDate: null, endDate: null, key: "selection" }]);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [showRangePicker, setShowRangePicker] = useState(false);
+  /* ===== Date Range ===== */
   const pickerRef = useRef(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [range, setRange] = useState([
+    { startDate: null, endDate: null, key: "selection" }
+  ]);
 
-  // Fetch samples
+  /* ================= LOAD LOCALSTORAGE ================= */
+
   useEffect(() => {
-    const fetchSamples = async () => {
-      try {
-        const res = await axios.get(
-          "https://merobase-backendv2-production-2013.up.railway.app/api/samples"
-        );
-        setSamples(res.data);
-      } catch (err) {
-        console.error("Failed to fetch samples:", err);
-        alert("Failed to fetch samples from backend");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSamples();
+    try {
+      const stored =
+        JSON.parse(localStorage.getItem("merobase_samples")) || [];
+      setSamples(stored);
+    } catch {
+      setSamples([]);
+    }
   }, []);
 
-  // Sync dateRange to formatted strings
-  useEffect(() => {
-    const sel = dateRange[0];
-    if (sel?.startDate && sel?.endDate) {
-      setStartDate(format(sel.startDate, "yyyy-MM-dd"));
-      setEndDate(format(sel.endDate, "yyyy-MM-dd"));
-    } else {
-      setStartDate("");
-      setEndDate("");
-    }
-  }, [dateRange]);
+  /* ================= FILTER LOGIC ================= */
 
-  // Close date picker if clicked outside
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
-        setShowRangePicker(false);
+  const filteredSamples = useMemo(() => {
+    return samples.filter((s) => {
+      const m = s.metadata || {};
+
+      const keyword = search.toLowerCase();
+      const matchText =
+        m.sampleName?.toLowerCase().includes(keyword) ||
+        m.species?.toLowerCase().includes(keyword) ||
+        m.genus?.toLowerCase().includes(keyword);
+
+      const matchKingdom =
+        kingdom === "All" || m.kingdom === kingdom;
+      const matchProject =
+        projectType === "All" || m.projectType === projectType;
+      const matchSampleType =
+        sampleType === "All" || m.sampleType === sampleType;
+
+      let matchDate = true;
+      if (range[0].startDate && range[0].endDate && m.collectionDate) {
+        const d = new Date(m.collectionDate);
+        matchDate =
+          d >= range[0].startDate && d <= range[0].endDate;
       }
-    }
-    if (showRangePicker) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showRangePicker]);
 
-  // Filter samples
-  const filteredSamples = samples.filter((sample) => {
-    const matchesText =
-      (sample.sampleName?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
-      (sample.species?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
-      (sample.genus?.toLowerCase().includes(searchText.toLowerCase()) ?? false);
+      return (
+        matchText &&
+        matchKingdom &&
+        matchProject &&
+        matchSampleType &&
+        matchDate
+      );
+    });
+  }, [samples, search, kingdom, projectType, sampleType, range]);
 
-    const matchesKingdom = selectedKingdom === "All" || sample.kingdom === selectedKingdom;
-    const matchesProject = selectedProjectType === "All" || sample.projectType === selectedProjectType;
+  /* ================= ACTIONS ================= */
 
-    let matchesDate = true;
-    const sampleDate = sample.collectionDate
-      ? new Date(sample.collectionDate)
-      : sample.lastEdited
-      ? new Date(sample.lastEdited)
-      : null;
+  const handleEdit = (sample) => {
+    loadSampleForEdit(sample);
+    navigate("/add/step1");
+  };
 
-    if (sampleDate && startDate && endDate) {
-      matchesDate =
-        sampleDate >= new Date(startDate) && sampleDate <= new Date(endDate);
-    }
+  const handleDetails = (sample) => {
+    navigate(`/sample/${sample.metadata.sampleId}`, {
+      state: { sample }
+    });
+  };
 
-    return matchesText && matchesKingdom && matchesProject && matchesDate;
-  });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <p className="text-gray-500 text-lg">Loading samples...</p>
-      </div>
-    );
-  }
+  /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen flex bg-gray-50 font-sans">
-      {/* Sidebar */}
-      <div
+    <div className="flex min-h-screen bg-gray-50 font-sans">
+      {/* ================= SIDEBAR ================= */}
+      <aside
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
-        className={`h-screen bg-white shadow-xl transition-all duration-300 fixed
-          ${sidebarOpen ? "w-56" : "w-16"} flex flex-col items-start`}
+        className={`bg-white shadow-xl transition-all duration-300
+        ${sidebarOpen ? "w-56" : "w-16"} flex flex-col`}
       >
-        <div className="flex items-center space-x-2 p-4">
+        <div className="flex items-center gap-2 p-4">
           <ChevronRight
-            className={`transition-transform duration-300 ${sidebarOpen ? "rotate-90" : ""}`}
+            className={`transition-transform ${
+              sidebarOpen ? "rotate-90" : ""
+            }`}
           />
-          {sidebarOpen && <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>}
+          {sidebarOpen && (
+            <h1 className="text-lg font-bold text-gray-700">
+              MEROBase
+            </h1>
+          )}
         </div>
 
-        <nav className="flex flex-col mt-4 w-full">
-          <button
+        <nav className="flex flex-col mt-4">
+          <SidebarBtn
+            icon={<LayoutDashboard className="text-blue-600" />}
+            label="Dashboard"
+            open={sidebarOpen}
             onClick={() => navigate("/dashboard")}
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-blue-50 transition rounded-lg"
-          >
-            <LayoutDashboard className="text-blue-600" />
-            {sidebarOpen && <span className="text-gray-700">Dashboard</span>}
-          </button>
-          <button
+          />
+          <SidebarBtn
+            icon={<Search className="text-purple-600" />}
+            label="Search Sample"
+            open={sidebarOpen}
             onClick={() => navigate("/searchsample")}
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-purple-50 transition rounded-lg"
-          >
-            <Search className="text-purple-600" />
-            {sidebarOpen && <span className="text-gray-700">Search Sample</span>}
-          </button>
+          />
+          <SidebarBtn
+            icon={<Edit3 className="text-green-600" />}
+            label="Edit Sample"
+            open={sidebarOpen}
+            active
+          />
         </nav>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div className={`flex-1 transition-all p-6 ${sidebarOpen ? "ml-56" : "ml-16"}`}>
-        <h1 className="text-2xl font-bold text-blue-600 mb-6">Edit Sample</h1>
+      {/* ================= MAIN ================= */}
+      <main className="flex-1 p-8">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">
+          Edit Samples
+        </h1>
 
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-6 max-w-4xl">
+        {/* ================= FILTER PANEL ================= */}
+        <div className="bg-white rounded-xl shadow p-6 mb-8 max-w-6xl">
           <input
             type="text"
             placeholder="Search sample name, species, genus..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg mb-4"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {/* Kingdom */}
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-600 mb-1">Kingdom</label>
-              <select
-                value={selectedKingdom}
-                onChange={(e) => setSelectedKingdom(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                {kingdoms.map((k) => (
-                  <option key={k} value={k}>{k}</option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Select
+              label="Kingdom"
+              value={kingdom}
+              onChange={setKingdom}
+              options={KINGDOMS}
+            />
+            <Select
+              label="Project Type"
+              value={projectType}
+              onChange={setProjectType}
+              options={PROJECTS}
+            />
+            <Select
+              label="Sample Type"
+              value={sampleType}
+              onChange={setSampleType}
+              options={SAMPLE_TYPES}
+            />
 
-            {/* Project Type */}
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-600 mb-1">Project Type</label>
-              <select
-                value={selectedProjectType}
-                onChange={(e) => setSelectedProjectType(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                {projectTypes.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range Picker */}
-            <div className="relative w-full" ref={pickerRef}>
-              <label className="text-sm font-semibold text-gray-600 mb-1">Date Range</label>
+            {/* Date Picker */}
+            <div ref={pickerRef}>
+              <label className="text-sm font-semibold">
+                Date Range
+              </label>
               <button
-                type="button"
-                onClick={() => setShowRangePicker((s) => !s)}
-                className="w-full px-4 py-2 border rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onClick={() => setShowPicker(!showPicker)}
+                className="w-full px-4 py-2 border rounded-lg text-left"
               >
-                {startDate && endDate
-                  ? `${format(new Date(startDate), "dd MMM yyyy")} — ${format(new Date(endDate), "dd MMM yyyy")}`
+                {range[0].startDate && range[0].endDate
+                  ? `${range[0].startDate.toLocaleDateString()} – ${range[0].endDate.toLocaleDateString()}`
                   : "Select date range"}
               </button>
 
-              {showRangePicker && (
+              {showPicker && (
                 <div className="absolute z-50 mt-2">
                   <DateRange
-                    editableDateInputs={true}
-                    onChange={(item) => setDateRange([item.selection])}
-                    moveRangeOnFirstSelection={false}
-                    ranges={dateRange}
-                    maxDate={new Date()}
-                    className="shadow-lg rounded-lg"
+                    ranges={range}
+                    onChange={(item) =>
+                      setRange([item.selection])
+                    }
                   />
                 </div>
               )}
@@ -209,80 +211,96 @@ export default function EditSample() {
           </div>
         </div>
 
-        {/* Sample Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
+        {/* ================= SAMPLE CARDS ================= */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl">
           {filteredSamples.length === 0 ? (
-            <p className="text-gray-500 col-span-full text-center">No samples match your search.</p>
+            <p className="text-gray-500 col-span-full text-center">
+              No samples found.
+            </p>
           ) : (
-            filteredSamples.map((sample) => <SampleCard key={sample._id} sample={sample} navigate={navigate} />)
+            filteredSamples.map((sample) => {
+              const m = sample.metadata || {};
+              return (
+                <div
+                  key={m.sampleId}
+                  className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition"
+                >
+                  <h2 className="font-semibold text-lg mb-1">
+                    {m.sampleName || "Unnamed Sample"}
+                  </h2>
+
+                  <p className="text-sm text-gray-600">
+                    Project: {m.projectType || "-"}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Kingdom: {m.kingdom || "-"}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Sample Type: {m.sampleType || "-"}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Date:{" "}
+                    {m.collectionDate
+                      ? new Date(
+                          m.collectionDate
+                        ).toLocaleDateString()
+                      : "-"}
+                  </p>
+
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => handleDetails(sample)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm"
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={() => handleEdit(sample)}
+                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-// Expandable Sample Card
-function SampleCard({ sample, navigate }) {
-  const [expanded, setExpanded] = useState(false);
+/* ================= SUB COMPONENTS ================= */
 
+function SidebarBtn({ icon, label, open, onClick, active }) {
   return (
-    <div
-      className={`bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300 ${
-        expanded ? "max-h-full" : "max-h-40 overflow-hidden"
-      }`}
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition
+      ${active ? "bg-gray-100 font-semibold" : "hover:bg-gray-100"}`}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="font-semibold text-lg mb-1">
-            {sample.sampleName || sample.species || "Unnamed Sample"}
-          </h2>
-          <p className="text-gray-600 text-sm mb-1">
-            Project: {sample.projectType} #{sample.projectNumber || "-"}
-          </p>
-          <p className="text-gray-600 text-sm mb-1">Sample #: {sample.sampleNumber || "-"}</p>
-        </div>
+      {icon}
+      {open && <span>{label}</span>}
+    </button>
+  );
+}
 
-        <button
-          className="text-blue-600 text-sm hover:underline"
-          onClick={() => setExpanded((prev) => !prev)}
-        >
-          {expanded ? "Minimize" : "Expand"}
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="mt-2 text-gray-600 text-sm space-y-1">
-          <p>
-            Collected:{" "}
-            {sample.collectionDate
-              ? new Date(sample.collectionDate).toLocaleDateString()
-              : sample.lastEdited
-              ? new Date(sample.lastEdited).toLocaleDateString()
-              : "-"}
-          </p>
-          {sample.kingdom && <p>Kingdom: {sample.kingdom}</p>}
-          {sample.genus && <p>Genus: {sample.genus}</p>}
-          {sample.species && <p>Species: {sample.species}</p>}
-          {sample.family && <p>Family: {sample.family}</p>}
-          {sample.storageLocation && <p>Stored at: {sample.storageLocation}</p>}
-
-          <div className="flex gap-2 mt-2">
-            <button
-              className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-              onClick={() => navigate(`/sampledetails/${sample._id}`, { state: { sample } })}
-            >
-              View Full Details
-            </button>
-            <button
-              className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-              onClick={() => navigate(`/editform/${sample._id}`, { state: { sample } })}
-            >
-              Edit
-            </button>
-          </div>
-        </div>
-      )}
+function Select({ label, value, onChange, options }) {
+  return (
+    <div>
+      <label className="text-sm font-semibold">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2 border rounded-lg"
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

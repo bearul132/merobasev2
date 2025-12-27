@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { SampleFormProvider } from '../../context/SampleFormContext';
-import { LayoutDashboard, PlusCircle, Edit3, Search, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { SampleFormProvider, useSampleFormContext } from "../../context/SampleFormContext";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  Edit3,
+  Search,
+  ChevronRight,
+} from "lucide-react";
 
+/* ================= Wizard Steps ================= */
 const steps = [
-  { path: '/add/step1', label: 'Metadata' },
-  { path: '/add/step2', label: 'Morphology' },
-  { path: '/add/step3', label: 'Microbiology' },
-  { path: '/add/step4', label: 'Molecular' },
-  { path: '/add/step5', label: 'Publication' },
-  { path: '/add/review', label: 'Review' },
+  { path: "/add/step1", label: "Metadata" },
+  { path: "/add/step2", label: "Morphology" },
+  { path: "/add/step3", label: "Microbiology" },
+  { path: "/add/step4", label: "Molecular" },
+  { path: "/add/step5", label: "Publication" },
+  { path: "/add/review", label: "Review" },
 ];
 
 export default function AddSampleWizard() {
@@ -17,135 +24,189 @@ export default function AddSampleWizard() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const currentStepIndex = steps.findIndex(s => s.path === location.pathname);
+  /* ================= EDIT MODE DETECTION ================= */
+  const isEditMode = location.state?.mode === "edit";
+  const editSampleData = location.state?.sample || null;
+
+  const currentStepIndex = steps.findIndex(
+    (step) => step.path === location.pathname
+  );
 
   const goNext = () => {
     if (currentStepIndex < steps.length - 1) {
-      navigate(steps[currentStepIndex + 1].path);
+      navigate(steps[currentStepIndex + 1].path, { state: location.state });
     }
   };
 
   const goBack = () => {
     if (currentStepIndex > 0) {
-      navigate(steps[currentStepIndex - 1].path);
+      navigate(steps[currentStepIndex - 1].path, { state: location.state });
     }
   };
 
   return (
     <SampleFormProvider>
-      <div className="flex min-h-screen font-sans bg-gray-50">
-        {/* Sidebar */}
-        <div
-          onMouseEnter={() => setSidebarOpen(true)}
-          onMouseLeave={() => setSidebarOpen(false)}
-          className={`h-screen bg-white shadow-xl transition-all duration-300 flex flex-col items-start
-            ${sidebarOpen ? 'w-56' : 'w-16'}`}
-        >
-          <div className="flex items-center space-x-2 p-4">
-            <ChevronRight className={`transition-transform duration-300 ${sidebarOpen ? 'rotate-90' : ''}`} />
-            {sidebarOpen && <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>}
-          </div>
+      <WizardLayout
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        isEditMode={isEditMode}
+        editSampleData={editSampleData}
+        currentStepIndex={currentStepIndex}
+        goNext={goNext}
+        goBack={goBack}
+      >
+        <Outlet />
+      </WizardLayout>
+    </SampleFormProvider>
+  );
+}
 
-          <nav className="flex flex-col mt-4 w-full">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-blue-50 transition rounded-lg"
-            >
-              <LayoutDashboard className="text-blue-600" />
-              {sidebarOpen && <span className="text-gray-700">Dashboard</span>}
-            </button>
-            <button
-              onClick={() => navigate("/add/step1")}
-              className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-green-50 transition rounded-lg"
-            >
-              <PlusCircle className="text-green-600" />
-              {sidebarOpen && <span className="text-gray-700">Add Sample</span>}
-            </button>
-            <button
-              onClick={() => navigate("/editsample")}
-              className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-yellow-50 transition rounded-lg"
-            >
-              <Edit3 className="text-yellow-600" />
-              {sidebarOpen && <span className="text-gray-700">Edit Sample</span>}
-            </button>
-            <button
-              onClick={() => navigate("/searchsample")}
-              className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-purple-50 transition rounded-lg"
-            >
-              <Search className="text-purple-600" />
-              {sidebarOpen && <span className="text-gray-700">Search Sample</span>}
-            </button>
-          </nav>
+/* ================= Layout Component ================= */
+function WizardLayout({
+  sidebarOpen,
+  setSidebarOpen,
+  isEditMode,
+  editSampleData,
+  currentStepIndex,
+  goNext,
+  goBack,
+  children,
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { loadSampleForEdit } = useSampleFormContext();
+
+  /* ================= Load Edit Sample ================= */
+  useEffect(() => {
+    if (isEditMode && editSampleData) {
+      loadSampleForEdit(editSampleData);
+    }
+  }, [isEditMode, editSampleData, loadSampleForEdit]);
+
+  return (
+    <div className="flex min-h-screen bg-gray-50 font-sans">
+      {/* ================= Sidebar ================= */}
+      <div
+        onMouseEnter={() => setSidebarOpen(true)}
+        onMouseLeave={() => setSidebarOpen(false)}
+        className={`h-screen bg-white shadow-xl transition-all duration-300 ${
+          sidebarOpen ? "w-56" : "w-16"
+        } flex flex-col`}
+      >
+        <div className="flex items-center gap-2 p-4">
+          <ChevronRight className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`} />
+          {sidebarOpen && (
+            <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>
+          )}
         </div>
 
-        {/* Main Wizard Content */}
-        <div className="flex-1 p-6">
-          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-6 mx-auto">
-            {/* Header */}
-            <div className="mb-4 text-center">
-              <h2 className="text-2xl font-bold">Add Sample — Wizard</h2>
-              <p className="text-sm text-gray-500">
-                Card-style wizard. Images stored locally and uploaded on Finish.
-              </p>
-            </div>
+        <nav className="flex flex-col mt-4 w-full gap-1">
+          <SidebarButton
+            icon={<LayoutDashboard className="text-blue-600" />}
+            label="Dashboard"
+            open={sidebarOpen}
+            onClick={() => navigate("/dashboard")}
+          />
+          <SidebarButton
+            icon={<PlusCircle className="text-green-600" />}
+            label="Add Sample"
+            open={sidebarOpen}
+            onClick={() => navigate("/add/step1", { state: { mode: "add" } })}
+          />
+          <SidebarButton
+            icon={<Edit3 className="text-yellow-600" />}
+            label="Edit Sample"
+            open={sidebarOpen}
+            onClick={() => navigate("/editsample")}
+          />
+          <SidebarButton
+            icon={<Search className="text-purple-600" />}
+            label="Search Sample"
+            open={sidebarOpen}
+            onClick={() => navigate("/searchsample")}
+          />
+        </nav>
+      </div>
 
-            {/* Step Navigation */}
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex gap-2 text-sm text-gray-600 flex-wrap">
-                {steps.map((s, idx) => (
-                  <React.Fragment key={s.path}>
-                    <NavLink
-                      to={s.path}
-                      className={({ isActive }) => (isActive ? 'font-semibold' : '')}
-                    >
-                      {idx + 1}.{s.label}
-                    </NavLink>
-                    {idx < steps.length - 1 && <span>•</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
+      {/* ================= Main Content ================= */}
+      <div className={`flex-1 p-6 transition-all ${sidebarOpen ? "ml-56" : "ml-16"}`}>
+        <div className="mx-auto max-w-4xl bg-white rounded-2xl shadow-lg p-6">
+          {/* Header */}
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+              {isEditMode ? "Edit Sample — Wizard" : "Add Sample — Wizard"}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {isEditMode
+                ? "You are editing an existing sample."
+                : "Create a new sample entry (frontend-only)."}
+            </p>
+          </div>
 
-            {/* Step Content */}
-            <div className="mb-6">
-              <Outlet />
-            </div>
+          {/* Step Navigation */}
+          <div className="mb-6 flex flex-wrap gap-3 text-sm text-gray-600 justify-center">
+            {steps.map((step, idx) => (
+              <NavLink
+                key={step.path}
+                to={step.path}
+                state={{ mode: isEditMode ? "edit" : "add", sample: editSampleData }}
+                className={({ isActive }) =>
+                  `px-3 py-1 rounded-full transition ${
+                    isActive
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`
+                }
+              >
+                {idx + 1}. {step.label}
+              </NavLink>
+            ))}
+          </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between mt-4">
-              {currentStepIndex > 0 ? (
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Back
-                </button>
-              ) : (
-                <div /> // placeholder to keep spacing
-              )}
+          {/* Step Content */}
+          <div className="mb-8">{children}</div>
 
-              {currentStepIndex < steps.length - 1 ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  form="wizardForm"
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Submit
-                </button>
-              )}
-            </div>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center">
+            {currentStepIndex > 0 ? (
+              <button
+                onClick={goBack}
+                className="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Back
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {currentStepIndex < steps.length - 1 ? (
+              <button
+                onClick={goNext}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Next
+              </button>
+            ) : (
+              <span className="text-sm text-gray-500">
+                Review & submit handled in Step 6
+              </span>
+            )}
           </div>
         </div>
       </div>
-    </SampleFormProvider>
+    </div>
+  );
+}
+
+/* ================= Sidebar Button ================= */
+function SidebarButton({ icon, label, open, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-100 transition rounded-lg"
+    >
+      {icon}
+      {open && <span className="text-gray-700 font-medium">{label}</span>}
+    </button>
   );
 }

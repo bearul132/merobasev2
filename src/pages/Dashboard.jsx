@@ -1,13 +1,6 @@
-import { useState, useEffect } from "react";
+// src/pages/Dashboard.jsx
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup
-} from "react-leaflet";
-
 import {
   PieChart,
   Pie,
@@ -22,229 +15,196 @@ import {
   CartesianGrid,
   Legend
 } from "recharts";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  Edit3,
+  Search,
+  ChevronRight
+} from "lucide-react";
 
-import { LayoutDashboard, PlusCircle, Edit3, Search, ChevronRight } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+/* ================= CONFIG ================= */
 
 const kingdomColors = {
   Animalia: "#3B82F6",
   Plantae: "#10B981",
   Fungi: "#F59E0B",
-  Other: "#EF4444"
+  Bacteria: "#8B5CF6",
+  Undecided: "#9CA3AF"
 };
 
-export default function Dashboard({ samples: initialSamples }) {
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [samples, setSamples] = useState(initialSamples || []);
-  const [loading, setLoading] = useState(true);
+const STORAGE_KEY = "merobase_samples";
 
+/* ================= COMPONENT ================= */
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [samples, setSamples] = useState([]);
+
+  /* ================= LOAD FROM LOCALSTORAGE ================= */
   useEffect(() => {
-    const fetchSamples = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/samples");
-        setSamples(res.data);
-      } catch (err) {
-        console.error("Error fetching samples:", err);
-        setSamples(initialSamples || []);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSamples();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      setSamples(raw ? JSON.parse(raw) : []);
+    } catch {
+      setSamples([]);
+    }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen justify-center items-center font-sans">
-        <p className="text-gray-500 text-lg">Loading samples...</p>
-      </div>
-    );
-  }
+  /* ================= KPI ================= */
 
-  // Aggregate data
+  const totalSamples = samples.length;
+  const totalProjects = new Set(
+    samples.map(s => s.metadata?.projectType).filter(Boolean)
+  ).size;
+  const totalKingdoms = new Set(
+    samples.map(s => s.metadata?.kingdom).filter(Boolean)
+  ).size;
+  const totalSpecies = new Set(
+    samples.map(s => s.metadata?.species).filter(Boolean)
+  ).size;
+
+  const kpiData = [
+    { label: "Total Samples", value: totalSamples, color: "bg-blue-600" },
+    { label: "Total Projects", value: totalProjects, color: "bg-green-600" },
+    { label: "Total Kingdoms", value: totalKingdoms, color: "bg-yellow-500" },
+    { label: "Total Species", value: totalSpecies, color: "bg-purple-600" }
+  ];
+
+  /* ================= LATEST ================= */
+
+  const latestRegistered = samples.at(-1);
+  const latestEdited = [...samples]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))[0];
+
+  /* ================= CHART DATA ================= */
+
   const kingdomCounts = Object.entries(
-    samples.reduce(
-      (acc, s) => ({ ...acc, [s.kingdom || "Other"]: (acc[s.kingdom || "Other"] || 0) + 1 }),
-      {}
-    )
+    samples.reduce((acc, s) => {
+      const k = s.metadata?.kingdom || "Undecided";
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {})
   ).map(([name, value]) => ({ name, value }));
 
   const projectCounts = Object.entries(
-    samples.reduce(
-      (acc, s) => ({ ...acc, [s.projectType || "Unknown"]: (acc[s.projectType || "Unknown"] || 0) + 1 }),
-      {}
-    )
+    samples.reduce((acc, s) => {
+      const p = s.metadata?.projectType || "Unknown";
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    }, {})
   ).map(([name, value]) => ({ name, value }));
 
   const dateCounts = Object.entries(
-    samples.reduce(
-      (acc, s) => ({ ...acc, [s.collectionDate || "Unknown"]: (acc[s.collectionDate || "Unknown"] || 0) + 1 }),
-      {}
-    )
+    samples.reduce((acc, s) => {
+      const d = s.metadata?.collectionDate || "Unknown";
+      acc[d] = (acc[d] || 0) + 1;
+      return acc;
+    }, {})
   ).map(([date, value]) => ({ date, value }));
 
-  const latestRegistered = samples[samples.length - 1] || {};
-  const latestEdited = samples[0] || {};
-
-  const totalSamples = samples.length;
-  const totalProjects = new Set(samples.map(s => s.projectType)).size;
-  const totalKingdoms = new Set(samples.map(s => s.kingdom)).size;
-  const totalSpecies = new Set(samples.map(s => s.species)).size;
-
-  const kpiData = [
-    { label: "Total Samples", value: totalSamples, color: "bg-blue-500" },
-    { label: "Total Projects", value: totalProjects, color: "bg-green-500" },
-    { label: "Total Kingdoms", value: totalKingdoms, color: "bg-yellow-500" },
-    { label: "Total Species", value: totalSpecies, color: "bg-purple-500" },
-  ];
+  /* ================= UI ================= */
 
   return (
-    <div className="flex min-h-screen font-sans bg-gray-100">
-      {/* Sidebar */}
-      <div
-        onMouseEnter={() => setSidebarOpen(true)}
-        onMouseLeave={() => setSidebarOpen(false)}
-        className={`h-screen bg-white shadow-xl transition-all duration-300 fixed
-          ${sidebarOpen ? "w-56" : "w-16"} flex flex-col items-start`}
+    <div className="flex min-h-screen bg-gray-100 font-sans">
+      {/* ================= SIDEBAR ================= */}
+      <aside
+        className={`bg-white shadow-xl transition-all duration-300
+        ${sidebarOpen ? "w-64" : "w-16"} h-screen flex flex-col`}
       >
-        <div className="flex items-center space-x-2 p-4">
-          <ChevronRight
-            className={`transition-transform duration-300 ${sidebarOpen ? "rotate-90" : ""}`}
-          />
-          {sidebarOpen && <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>}
+        <div className="flex items-center justify-between p-4 border-b">
+          {sidebarOpen && (
+            <h1 className="text-xl font-bold text-gray-700">MEROBase</h1>
+          )}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <ChevronRight
+              className={`transition-transform ${
+                sidebarOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
         </div>
 
-        <nav className="flex flex-col mt-4 w-full">
-          <button
+        <nav className="flex flex-col mt-4">
+          <SidebarBtn
+            icon={<LayoutDashboard className="text-blue-600" />}
+            label="Dashboard"
+            open={sidebarOpen}
             onClick={() => navigate("/dashboard")}
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-blue-50 transition rounded-lg"
-          >
-            <LayoutDashboard className="text-blue-600" />
-            {sidebarOpen && <span className="text-gray-700">Dashboard</span>}
-          </button>
-
-          <button
-            onClick={() => navigate("/add/step1")} // Redirect to wizard first step
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-green-50 transition rounded-lg"
-          >
-            <PlusCircle className="text-green-600" />
-            {sidebarOpen && <span className="text-gray-700">Add Sample</span>}
-          </button>
-
-          <button
+          />
+          <SidebarBtn
+            icon={<PlusCircle className="text-green-600" />}
+            label="Add Sample"
+            open={sidebarOpen}
+            onClick={() => navigate("/add/step1")}
+          />
+          <SidebarBtn
+            icon={<Edit3 className="text-yellow-600" />}
+            label="Edit Sample"
+            open={sidebarOpen}
             onClick={() => navigate("/editsample")}
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-yellow-50 transition rounded-lg"
-          >
-            <Edit3 className="text-yellow-600" />
-            {sidebarOpen && <span className="text-gray-700">Edit Sample</span>}
-          </button>
-
-          <button
+          />
+          <SidebarBtn
+            icon={<Search className="text-purple-600" />}
+            label="Search Sample"
+            open={sidebarOpen}
             onClick={() => navigate("/searchsample")}
-            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-purple-50 transition rounded-lg"
-          >
-            <Search className="text-purple-600" />
-            {sidebarOpen && <span className="text-gray-700">Search Sample</span>}
-          </button>
+          />
         </nav>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 ml-16 md:ml-64 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">MEROBase Dashboard</h1>
+      {/* ================= MAIN ================= */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
-        {/* KPI Cards */}
+        {/* KPI */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          {kpiData.map((kpi, idx) => (
+          {kpiData.map((kpi, i) => (
             <div
-              key={idx}
-              className={`bg-white shadow rounded-xl p-6 flex flex-col justify-center items-start`}
+              key={i}
+              className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
             >
-              <span className={`text-white px-2 py-1 rounded ${kpi.color} text-sm font-semibold`}>
+              <span
+                className={`inline-block text-white text-sm px-2 py-1 rounded ${kpi.color}`}
+              >
                 {kpi.label}
               </span>
-              <h2 className="text-2xl font-bold mt-2 text-gray-800">{kpi.value}</h2>
+              <h2 className="text-3xl font-bold mt-2">{kpi.value}</h2>
             </div>
           ))}
         </div>
 
-        {/* Latest Registered & Edited */}
+        {/* Latest */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {[{
-            label: "Latest Registered",
-            sample: latestRegistered
-          }, {
-            label: "Latest Edited",
-            sample: latestEdited
-          }].map(({ label, sample }, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-xl shadow p-6 cursor-pointer hover:shadow-lg"
-              onClick={() => sample._id && navigate(`/sampledetails/${sample._id}`, { state: { sample } })}
-            >
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">{label}</h3>
-              <p className="text-gray-600 font-medium">{sample.species || "No sample yet"}</p>
-              <p className="text-gray-500 text-sm">Project: {sample.projectType || "N/A"}</p>
-              <p className="text-gray-500 text-sm">Date Acquired: {sample.collectionDate || "N/A"}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Map */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">
-            Sample Map (Bali)
-          </h3>
-
-          <MapContainer
-            center={[-8.65, 115.2167]}
-            zoom={10}
-            scrollWheelZoom={false}
-            className="w-full md:w-4/5 h-96 rounded-xl shadow mx-auto"
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {samples.map((s) => (
-              <Marker key={s._id} position={[Number(s.latitude), Number(s.longitude)]}>
-                <Popup>
-                  <strong>{s.species}</strong>
-                  <br />
-                  Project: {s.projectType}
-                  <br />
-                  Date: {s.collectionDate}
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          <InfoCard title="Latest Registered" sample={latestRegistered} />
+          <InfoCard title="Latest Edited" sample={latestEdited} />
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">Kingdom Types</h3>
-            <PieChart width={250} height={250}>
-              <Pie data={kingdomCounts} dataKey="value" nameKey="name" outerRadius={80} label>
-                {kingdomCounts.map((entry, index) => (
-                  <Cell key={index} fill={kingdomColors[entry.name] || "#D1D5DB"} />
+          <ChartBox title="Kingdom Types">
+            <PieChart width={260} height={260}>
+              <Pie data={kingdomCounts} dataKey="value" label>
+                {kingdomCounts.map((e, i) => (
+                  <Cell key={i} fill={kingdomColors[e.name] || "#D1D5DB"} />
                 ))}
               </Pie>
               <Tooltip />
             </PieChart>
-          </div>
+          </ChartBox>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">Project Types</h3>
-            <BarChart width={250} height={250} data={projectCounts}>
+          <ChartBox title="Project Types">
+            <BarChart width={260} height={260} data={projectCounts}>
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
               <Bar dataKey="value" fill="#3B82F6" />
             </BarChart>
-          </div>
+          </ChartBox>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">Date Acquired</h3>
-            <LineChart width={250} height={250} data={dateCounts}>
+          <ChartBox title="Date Acquired">
+            <LineChart width={260} height={260} data={dateCounts}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
@@ -252,9 +212,53 @@ export default function Dashboard({ samples: initialSamples }) {
               <Legend />
               <Line type="monotone" dataKey="value" stroke="#10B981" />
             </LineChart>
-          </div>
+          </ChartBox>
         </div>
       </main>
+    </div>
+  );
+}
+
+/* ================= SUB COMPONENTS ================= */
+
+function SidebarBtn({ icon, label, open, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg"
+    >
+      {icon}
+      {open && <span>{label}</span>}
+    </button>
+  );
+}
+
+function InfoCard({ title, sample }) {
+  return (
+    <div className="bg-white rounded-xl shadow p-6">
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      {sample ? (
+        <>
+          <p className="font-medium">{sample.metadata?.species}</p>
+          <p className="text-sm text-gray-500">
+            Kingdom: {sample.metadata?.kingdom}
+          </p>
+          <p className="text-sm text-gray-500">
+            Date: {sample.metadata?.collectionDate}
+          </p>
+        </>
+      ) : (
+        <p className="text-gray-400 italic">No data</p>
+      )}
+    </div>
+  );
+}
+
+function ChartBox({ title, children }) {
+  return (
+    <div className="bg-white rounded-xl shadow p-6">
+      <h3 className="text-xl font-semibold mb-4">{title}</h3>
+      {children}
     </div>
   );
 }

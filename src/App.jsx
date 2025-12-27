@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+// Context
+import { SampleFormProvider } from "./context/SampleFormContext";
 
 // Pages
 import Login from "./pages/Login";
@@ -44,53 +52,62 @@ export default function App() {
 
   return (
     <Router>
-      <Routes>
+      {/* ✅ PROVIDER MUST WRAP ROUTES */}
+      <SampleFormProvider>
+        <Routes>
+          {/* Login */}
+          <Route path="/" element={<Login />} />
 
-        {/* Login */}
-        <Route path="/" element={<Login />} />
+          {/* Dashboard */}
+          <Route
+            path="/dashboard"
+            element={<Dashboard samples={samples} />}
+          />
 
-        {/* Dashboard */}
-        <Route
-          path="/dashboard"
-          element={<Dashboard samples={samples} />}
-        />
+          {/* ================= ADD / EDIT SAMPLE WIZARD ================= */}
+          <Route path="/add" element={<AddSampleWizard />}>
+            <Route index element={<Navigate to="step1" replace />} />
+            <Route path="step1" element={<Step1_Metadata />} />
+            <Route path="step2" element={<Step2_Morphology />} />
+            <Route path="step3" element={<Step3_Microbiology />} />
+            <Route path="step4" element={<Step4_Molecular />} />
+            <Route path="step5" element={<Step5_Publication />} />
+            <Route path="review" element={<Step6_ReviewSubmit />} />
+          </Route>
 
-        {/* ================= ADD SAMPLE WIZARD ================= */}
-        <Route path="/add" element={<AddSampleWizard />}>
-          <Route index element={<Navigate to="step1" replace />} />
-          <Route path="step1" element={<Step1_Metadata />} />
-          <Route path="step2" element={<Step2_Morphology />} />
-          <Route path="step3" element={<Step3_Microbiology />} />
-          <Route path="step4" element={<Step4_Molecular />} />
-          <Route path="step5" element={<Step5_Publication />} />
-          <Route path="review" element={<Step6_ReviewSubmit />} />
-        </Route>
+          {/* Backward compatibility */}
+          <Route
+            path="/addsample"
+            element={<Navigate to="/add/step1" replace />}
+          />
 
-        {/* Backward compatibility (optional safety) */}
-        <Route path="/addsample" element={<Navigate to="/add/step1" replace />} />
+          {/* Search */}
+          <Route
+            path="/searchsample"
+            element={<SearchSample samples={samples} />}
+          />
 
-        {/* Search */}
-        <Route
-          path="/searchsample"
-          element={<SearchSample samples={samples} />}
-        />
+          {/* Edit Sample (selector page) */}
+          <Route
+            path="/editsample"
+            element={
+              <EditSample
+                samples={samples}
+                setSamples={setSamples}
+              />
+            }
+          />
 
-        {/* Edit Sample */}
-        <Route
-          path="/editsample"
-          element={<EditSample samples={samples} setSamples={setSamples} />}
-        />
+          {/* Details */}
+          <Route
+            path="/sampledetails/:id"
+            element={<SampleDetails samples={samples} />}
+          />
 
-        {/* Details */}
-        <Route
-          path="/sampledetails/:id"
-          element={<SampleDetails samples={samples} />}
-        />
-
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
-      </Routes>
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </SampleFormProvider>
     </Router>
   );
 }

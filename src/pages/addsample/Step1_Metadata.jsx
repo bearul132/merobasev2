@@ -1,58 +1,63 @@
 // src/pages/addsample/Step1_Metadata.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import FormProgressBar from "../../components/FormProgressBar";
+import { useSampleForm } from "../../context/SampleFormContext";
 
-export default function Step1_Metadata({ wizardData = {}, setWizardData = () => {} }) {
+export default function Step1_Metadata() {
   const navigate = useNavigate();
-  const metadata = wizardData.metadata || {};
+  const { formData, updateSection } = useSampleForm();
+  const metadata = formData.metadata;
 
-  const [localData, setLocalData] = useState({
-    samplePhoto: metadata.samplePhoto || null,
-    sampleType: metadata.sampleType || "Biological",
-    sampleName: metadata.sampleName || "",
-    sampleNumber: metadata.sampleNumber || "",
-    sampleLength: metadata.sampleLength || "",
-    diveSite: metadata.diveSite || "",
-    depth: metadata.depth || "",
-    temperature: metadata.temperature || "",
-    substrate: metadata.substrate || "",
-    projectType: metadata.projectType || "A",
-    projectNumber: metadata.projectNumber || "",
-    collectorName: metadata.collectorName || "",
-    kingdom: metadata.kingdom || "Undecided",
-    genus: metadata.genus || "",
-    family: metadata.family || "",
-    species: metadata.species || "",
-    storageLocation: metadata.storageLocation || "Cool Room",
-    latitude: metadata.latitude || "",
-    longitude: metadata.longitude || "",
-  });
+  const [preview, setPreview] = useState(
+    metadata.samplePhoto?.preview || null
+  );
 
-  const tulambenSites = ["USAT Liberty", "Tulamben Drop Off", "Kubu Wall", "Pyramids", "Batu Kelebit"];
+  const tulambenSites = [
+    "USAT Liberty",
+    "Tulamben Drop Off",
+    "Kubu Wall",
+    "Pyramids",
+    "Batu Kelebit",
+  ];
+
   const substrateOptions = ["Sand", "Rock", "Coral", "Mud", "Other"];
   const kingdoms = ["Undecided", "Animalia", "Plantae", "Fungi", "Other"];
-  const storageOptions = ["Cool Room", "Freezer", "Refrigerator", "Room Temperature"];
+  const storageOptions = [
+    "Cool Room",
+    "Freezer",
+    "Refrigerator",
+    "Room Temperature",
+  ];
 
   const handleChange = (field, value) => {
-    setLocalData(prev => ({ ...prev, [field]: value }));
-    setWizardData(prev => ({
-      ...prev,
-      metadata: { ...prev.metadata, [field]: value },
-    }));
+    updateSection("metadata", { [field]: value });
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) handleChange("samplePhoto", URL.createObjectURL(file));
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateSection("metadata", {
+        samplePhoto: {
+          name: file.name,
+          data: reader.result,
+          preview: reader.result,
+        },
+      });
+      setPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const LocationMarker = () => {
     const [position, setPosition] = useState(
-      localData.latitude && localData.longitude
-        ? [localData.latitude, localData.longitude]
+      metadata.latitude && metadata.longitude
+        ? [metadata.latitude, metadata.longitude]
         : null
     );
 
@@ -65,275 +70,319 @@ export default function Step1_Metadata({ wizardData = {}, setWizardData = () => 
       },
     });
 
-    return position ? <Marker position={position}></Marker> : null;
+    return position ? <Marker position={position} /> : null;
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen flex justify-center">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Progress Bar */}
+    <div className="min-h-screen bg-gray-50 p-6 flex justify-center">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-8 space-y-8">
         <FormProgressBar step={1} steps={6} />
 
-        <h2 className="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">
-          Step 1: Metadata
-        </h2>
+        {/* ================= HEADER ================= */}
+        <div className="border-b pb-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Step 1 — Metadata
+          </h2>
+          <p className="text-sm text-gray-500">
+            Basic sample information and location
+          </p>
+        </div>
 
-        {/* Sample Photo */}
-        <div className="flex flex-col items-center space-y-2">
-          <label className="text-gray-700 font-medium">Sample Photo</label>
-          <div className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition">
+        {/* ================= SAMPLE PHOTO ================= */}
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-2">Sample Photo</h3>
+          <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer hover:border-blue-400 transition">
             <input
               type="file"
               accept="image/*"
-              onChange={handleFileChange}
               className="hidden"
-              id="samplePhoto"
+              onChange={handleFileChange}
             />
-            <label htmlFor="samplePhoto" className="cursor-pointer text-gray-500">
-              {localData.samplePhoto ? "Change Photo" : "Drag & drop or click to upload"}
-            </label>
-            {localData.samplePhoto && (
+            {!preview ? (
+              <span className="text-gray-400">
+                Drag & drop or click to upload
+              </span>
+            ) : (
               <img
-                src={localData.samplePhoto}
-                alt="Sample"
-                className="mt-4 w-48 h-48 object-cover rounded-lg shadow-md"
+                src={preview}
+                alt="Preview"
+                className="w-48 h-48 object-cover rounded-lg shadow"
               />
             )}
-          </div>
+          </label>
         </div>
 
-        {/* General Metadata Fields */}
+        {/* ================= GENERAL METADATA ================= */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Sample Type</label>
+          <Field label="Sample Type">
             <select
-              value={localData.sampleType}
-              onChange={e => handleChange("sampleType", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              value={metadata.sampleType}
+              onChange={(e) =>
+                handleChange("sampleType", e.target.value)
+              }
+              className="input"
             >
               <option value="Biological">Biological</option>
               <option value="Non-Biological">Non-Biological</option>
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Sample Name</label>
+          <Field label="Sample Name">
             <input
-              type="text"
-              value={localData.sampleName}
-              onChange={e => handleChange("sampleName", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.sampleName}
+              onChange={(e) => handleChange("sampleName", e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Sample Number</label>
+          <Field label="Sample Number">
             <input
-              type="text"
-              value={localData.sampleNumber}
-              onChange={e => handleChange("sampleNumber", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.sampleNumber}
+              onChange={(e) =>
+                handleChange("sampleNumber", e.target.value)
+              }
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Sample Length (cm)</label>
+          <Field label="Sample Length (cm)">
             <input
               type="number"
-              value={localData.sampleLength}
-              onChange={e => handleChange("sampleLength", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.sampleLength || ""}
+              onChange={(e) =>
+                handleChange("sampleLength", e.target.value)
+              }
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Dive Site</label>
+          <Field label="Dive Site">
             <select
-              value={localData.diveSite}
-              onChange={e => handleChange("diveSite", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.diveSite}
+              onChange={(e) => handleChange("diveSite", e.target.value)}
             >
-              <option value="">Select Dive Site</option>
-              {tulambenSites.map(site => <option key={site} value={site}>{site}</option>)}
+              <option value="">Select site</option>
+              {tulambenSites.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Depth (m)</label>
+          <Field label="Depth (m)">
             <input
               type="number"
-              value={localData.depth}
-              onChange={e => handleChange("depth", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.depth || ""}
+              onChange={(e) => handleChange("depth", e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Temperature (°C)</label>
+          <Field label="Temperature (°C)">
             <input
               type="number"
-              value={localData.temperature}
-              onChange={e => handleChange("temperature", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.temperature || ""}
+              onChange={(e) =>
+                handleChange("temperature", e.target.value)
+              }
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Substrate</label>
+          <Field label="Substrate">
             <select
-              value={localData.substrate}
-              onChange={e => handleChange("substrate", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.substrate || ""}
+              onChange={(e) =>
+                handleChange("substrate", e.target.value)
+              }
             >
-              <option value="">Select Substrate</option>
-              {substrateOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="">Select substrate</option>
+              {substrateOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Project Type</label>
+          <Field label="Project Type">
             <select
-              value={localData.projectType}
-              onChange={e => handleChange("projectType", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.projectType}
+              onChange={(e) =>
+                handleChange("projectType", e.target.value)
+              }
             >
               <option value="A">A</option>
               <option value="B">B</option>
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Project Number</label>
+          <Field label="Project Number">
             <input
-              type="text"
-              value={localData.projectNumber}
-              onChange={e => handleChange("projectNumber", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.projectNumber}
+              onChange={(e) =>
+                handleChange("projectNumber", e.target.value)
+              }
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Collector Name</label>
+          <Field label="Collector Name">
             <input
-              type="text"
-              value={localData.collectorName}
-              onChange={e => handleChange("collectorName", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
+              value={metadata.collectorName}
+              onChange={(e) =>
+                handleChange("collectorName", e.target.value)
+              }
             />
-          </div>
+          </Field>
         </div>
 
-        {/* Conditional Biological / Non-Biological Fields */}
-        {localData.sampleType === "Biological" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-            <div>
-              <label className="block font-medium text-gray-600 mb-1">Kingdom</label>
+        {/* ================= BIO / NON-BIO ================= */}
+        <div className="border-t pt-6">
+          {metadata.sampleType === "Biological" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Kingdom">
+                <select
+                  className="input"
+                  value={metadata.kingdom}
+                  onChange={(e) =>
+                    handleChange("kingdom", e.target.value)
+                  }
+                >
+                  {kingdoms.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Genus">
+                <input
+                  className="input"
+                  value={metadata.genus}
+                  onChange={(e) =>
+                    handleChange("genus", e.target.value)
+                  }
+                />
+              </Field>
+
+              <Field label="Family">
+                <input
+                  className="input"
+                  value={metadata.family}
+                  onChange={(e) =>
+                    handleChange("family", e.target.value)
+                  }
+                />
+              </Field>
+
+              <Field label="Species">
+                <input
+                  className="input"
+                  value={metadata.species}
+                  onChange={(e) =>
+                    handleChange("species", e.target.value)
+                  }
+                />
+              </Field>
+
+              <Field label="Storage Location" full>
+                <select
+                  className="input"
+                  value={metadata.storageLocation}
+                  onChange={(e) =>
+                    handleChange("storageLocation", e.target.value)
+                  }
+                >
+                  {storageOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          ) : (
+            <Field label="Storage Location">
               <select
-                value={localData.kingdom}
-                onChange={e => handleChange("kingdom", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                className="input"
+                value={metadata.storageLocation}
+                onChange={(e) =>
+                  handleChange("storageLocation", e.target.value)
+                }
               >
-                {kingdoms.map(k => <option key={k} value={k}>{k}</option>)}
+                {storageOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className="block font-medium text-gray-600 mb-1">Genus</label>
-              <input
-                type="text"
-                value={localData.genus}
-                onChange={e => handleChange("genus", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-gray-600 mb-1">Family</label>
-              <input
-                type="text"
-                value={localData.family}
-                onChange={e => handleChange("family", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-gray-600 mb-1">Species</label>
-              <input
-                type="text"
-                value={localData.species}
-                onChange={e => handleChange("species", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block font-medium text-gray-600 mb-1">Storage Location</label>
-              <select
-                value={localData.storageLocation}
-                onChange={e => handleChange("storageLocation", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              >
-                {storageOptions.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4">
-            <label className="block font-medium text-gray-600 mb-1">Storage Location</label>
-            <select
-              value={localData.storageLocation}
-              onChange={e => handleChange("storageLocation", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            </Field>
+          )}
+        </div>
+
+        {/* ================= MAP ================= */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-700">Map Location Picker</h3>
+          <div className="h-64 rounded-xl overflow-hidden shadow">
+            <MapContainer
+              center={[-8.342, 115.544]}
+              zoom={13}
+              className="h-full w-full"
             >
-              {storageOptions.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <LocationMarker />
+            </MapContainer>
           </div>
-        )}
 
-        {/* Map Picker */}
-        <div className="h-64 w-full rounded-lg overflow-hidden shadow-md mt-4">
-          <MapContainer center={[-8.342, 115.544]} zoom={13} className="w-full h-full">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationMarker />
-          </MapContainer>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Latitude</label>
-            <input
-              type="number"
-              value={localData.latitude}
-              onChange={e => handleChange("latitude", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-600 mb-1">Longitude</label>
-            <input
-              type="number"
-              value={localData.longitude}
-              onChange={e => handleChange("longitude", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Field label="Latitude">
+              <input className="input" value={metadata.latitude || ""} readOnly />
+            </Field>
+            <Field label="Longitude">
+              <input
+                className="input"
+                value={metadata.longitude || ""}
+                readOnly
+              />
+            </Field>
           </div>
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-6">
+        {/* ================= NAV ================= */}
+        <div className="flex justify-between pt-6">
           <button
-            type="button"
             onClick={() => navigate("/dashboard")}
-            className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
           >
             Cancel
           </button>
           <button
-            type="button"
             onClick={() => navigate("/add/step2")}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
           >
             Next
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ================= REUSABLE FIELD ================= */
+function Field({ label, children, full }) {
+  return (
+    <div className={full ? "md:col-span-2" : ""}>
+      <label className="block text-sm font-medium text-gray-600 mb-1">
+        {label}
+      </label>
+      {children}
     </div>
   );
 }
