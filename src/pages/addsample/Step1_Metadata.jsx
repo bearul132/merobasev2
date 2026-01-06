@@ -81,7 +81,7 @@ export default function Step1_Metadata() {
         {/* ================= HEADER ================= */}
         <div className="border-b pb-4">
           <h2 className="text-2xl font-bold text-gray-800">
-            Step 1 — Metadata
+            Base Sample Data
           </h2>
           <p className="text-sm text-gray-500">
             Basic sample information and location

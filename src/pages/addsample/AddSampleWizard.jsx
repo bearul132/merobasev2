@@ -134,7 +134,7 @@ function WizardLayout({
           {/* Header */}
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold text-gray-800">
-              {isEditMode ? "Edit Sample — Wizard" : "Add Sample — Wizard"}
+              {isEditMode ? "MEROBASE: Modify Sample" : "MEROBASE: Input Sample"}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               {isEditMode

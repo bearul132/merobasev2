@@ -62,7 +62,15 @@ export function SampleFormProvider({ children }) {
       },
       microscopicMorphology: {
         shape: "",
-        arrangement: ""
+        arrangement: "" 
+      },
+      molecularIdentification: {
+        rawSequenceFiles: [],
+        pcrPlatform: "",
+        pcrProtocolType: "",
+        sequencingMethod: "",
+        bioinformaticsPipeline: "",
+        accessionStatus: ""
       },
       isolatedProfile: {
         gramReaction: "",

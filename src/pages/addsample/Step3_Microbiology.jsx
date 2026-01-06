@@ -1,333 +1,372 @@
-import React, { useRef } from "react";
-import { useSampleFormContext } from "../../context/SampleFormContext";
-import StepNavigation from "../../components/StepNavigation";
-import FormProgressBar from "../../components/FormProgressBar";
+import React from "react";
+import { useSampleForm } from "../../hooks/useSampleForm";
+import FileDropzone from "../../components/FileDropzone";
 
-export default function Step2_Microbiology() {
-  const { formData, updateSection } = useSampleFormContext();
+export default function Step3_Microbiology() {
+  const { formData, updateField } = useSampleForm();
 
-  /* ================= SAFE DEFAULT STRUCTURE ================= */
-  const micro = {
-    storageBox: {
-      boxID: "",
-      shelf: "",
-      position: "",
-      temperature: "",
-      notes: ""
-    },
-    images: {
-      isolated: null,
-      macroscopic: null,
-      microscopic: null
-    },
-    isolatedDescription: {
-      shape: "",
-      margin: "",
-      elevation: "",
-      color: "",
-      texture: ""
-    },
-    macroscopicMorphology: {
-      shape: "",
-      arrangement: ""
-    },
-    microscopicMorphology: {
-      shape: "",
-      arrangement: ""
-    },
-    isolatedProfile: {
-      gramReaction: "",
-      motility: "",
-      oxygenRequirement: "",
-      temperaturePreference: "",
-      agarMedia: "",
-      incubationTime: "",
-      enzymatic: ""
-    },
-    antibacterialAssay: {
-      pathogen: "",
-      method: "",
-      antimalarial: "",
-      molecularID: ""
-    },
-    biochemicalTests: [],
-    testNotes: "",
-    ...formData.microbiology
-  };
+  const Select = ({ label, field, options }) => (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <select
+        className="w-full border rounded-lg p-2 text-base"
+        value={formData.microbiology?.[field] || ""}
+        onChange={(e) =>
+          updateField("microbiology", field, e.target.value)
+        }
+      >
+        <option value="">Select</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
-  /* ================= REFS ================= */
-  const isolatedRef = useRef();
-  const macroRef = useRef();
-  const microRef = useRef();
-
-  /* ================= IMAGE HANDLING ================= */
-  const handleImage = (file, type) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      updateSection("microbiology", {
-        images: { ...micro.images, [type]: reader.result }
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const dropZone = (ref, label, type, image) => (
-    <div
-      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 transition"
-      onClick={() => ref.current.click()}
-      onDrop={(e) => {
-        e.preventDefault();
-        if (e.dataTransfer.files?.[0]) handleImage(e.dataTransfer.files[0], type);
-      }}
-      onDragOver={(e) => e.preventDefault()}
-    >
-      <p className="text-sm text-gray-600">{label}</p>
-      {image && (
-        <img src={image} className="mx-auto mt-4 max-w-xs rounded shadow" />
-      )}
+  const Input = ({ label, field }) => (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
       <input
-        ref={ref}
-        type="file"
-        className="hidden"
-        accept="image/*"
-        onChange={(e) => e.target.files[0] && handleImage(e.target.files[0], type)}
+        className="w-full border rounded-lg p-2 text-base"
+        value={formData.microbiology?.[field] || ""}
+        onChange={(e) =>
+          updateField("microbiology", field, e.target.value)
+        }
       />
     </div>
   );
 
-  const section = (title, children) => (
-    <section className="bg-white border rounded-xl p-6 shadow-sm">
-      <h4 className="text-lg font-semibold mb-4">{title}</h4>
+  const Section = ({ title, children }) => (
+    <section className="bg-white border rounded-xl p-5 space-y-4 shadow-sm">
+      <h2 className="text-lg font-semibold">{title}</h2>
       {children}
     </section>
   );
 
-  const input = (value, onChange) => (
-    <input
-      className="w-full p-2 border rounded-md focus:outline-none focus:ring"
-      value={value}
-      onChange={onChange}
-    />
-  );
-
-  const select = (value, onChange, label, options) => (
-    <select
-      className="w-full p-2 border rounded-md focus:outline-none focus:ring"
-      value={value}
-      onChange={onChange}
-    >
-      <option value="">{label}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
-      ))}
-    </select>
-  );
-
-  const toggleTest = (test) => {
-    updateSection("microbiology", {
-      biochemicalTests: micro.biochemicalTests.includes(test)
-        ? micro.biochemicalTests.filter((t) => t !== test)
-        : [...micro.biochemicalTests, test]
-    });
-  };
-
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
-      <FormProgressBar step={2} steps={6} />
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Microbiology</h1>
 
-      <h2 className="text-2xl font-bold mb-6">Microbiology</h2>
+      {/* SAMPLE STORAGE BOX */}
+      <Section title="Sample Storage Box">
+        <div className="grid md:grid-cols-2 gap-4">
+          <Input label="Box ID" field="boxId" />
+          <Input label="Shelf" field="shelf" />
+          <Input label="Position in Box" field="positionInBox" />
+          <Input label="Storage Temperature" field="storageTemperature" />
+        </div>
+        <Input label="Notes" field="storageNotes" />
+      </Section>
 
-      <div className="grid gap-8">
+      {/* MACROSCOPIC MORPHOLOGY */}
+      <Section title="Macroscopic Morphology">
+        <FileDropzone
+          label="Drag and Drop Isolated Image Here"
+          file={formData.microbiology?.isolatedImage}
+          onChange={(file) =>
+            updateField("microbiology", "isolatedImage", file)
+          }
+        />
+        <div className="grid md:grid-cols-2 gap-4">
+          <Select
+            label="Macroscopic Shape"
+            field="macroscopicShape"
+            options={[
+              "Circular",
+              "Irregular",
+              "Filamentous",
+              "Rhizoid",
+            ]}
+          />
+          <Select
+            label="Macroscopic Arrangement"
+            field="macroscopicArrangement"
+            options={[
+              "Single",
+              "Clustered",
+              "Spreading",
+            ]}
+          />
+        </div>
+      </Section>
 
-        {section("Sample Storage Box", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {["boxID","shelf","position","temperature"].map((key) => (
-              <div key={key}>
-                <label className="block mb-1 capitalize">{key.replace(/([A-Z])/g," $1")}</label>
-                {input(
-                  micro.storageBox[key],
-                  (e) => updateSection("microbiology", {
-                    storageBox: { ...micro.storageBox, [key]: e.target.value }
-                  })
-                )}
-              </div>
-            ))}
-            <div className="md:col-span-2">
-              <label className="block mb-1">Notes</label>
-              <textarea
-                className="w-full p-2 border rounded-md"
-                rows={3}
-                value={micro.storageBox.notes}
-                onChange={(e) =>
-                  updateSection("microbiology", {
-                    storageBox: { ...micro.storageBox, notes: e.target.value }
-                  })
+      {/* ISOLATED DESCRIPTION */}
+      <Section title="Isolated Description">
+        <div className="grid md:grid-cols-3 gap-4">
+          <Select
+            label="Shape"
+            field="isolatedShape"
+            options={["Circular", "Irregular"]}
+          />
+          <Select
+            label="Margin"
+            field="margin"
+            options={[
+              "Entire",
+              "Undulate",
+              "Lobate",
+              "Filamentous",
+            ]}
+          />
+          <Select
+            label="Elevation"
+            field="elevation"
+            options={[
+              "Flat",
+              "Raised",
+              "Convex",
+              "Umbonate",
+            ]}
+          />
+          <Select
+            label="Color"
+            field="color"
+            options={[
+              "White",
+              "Cream",
+              "Yellow",
+              "Orange",
+              "Pink",
+            ]}
+          />
+          <Select
+            label="Texture"
+            field="texture"
+            options={[
+              "Smooth",
+              "Rough",
+              "Mucoid",
+              "Dry",
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* MICROSCOPIC MORPHOLOGY */}
+      <Section title="Microscopic Morphology">
+        <FileDropzone
+          label="Drag and Drop Microscopic Image Here"
+          file={formData.microbiology?.microscopicImage}
+          onChange={(file) =>
+            updateField("microbiology", "microscopicImage", file)
+          }
+        />
+        <div className="grid md:grid-cols-2 gap-4">
+          <Select
+            label="Microscopic Shape"
+            field="microscopicShape"
+            options={[
+              "Cocci",
+              "Bacilli",
+              "Spirilla",
+              "Vibrio",
+            ]}
+          />
+          <Select
+            label="Microscopic Arrangement"
+            field="microscopicArrangement"
+            options={[
+              "Single",
+              "Pairs",
+              "Chains",
+              "Clusters",
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* ISOLATED PROFILE */}
+      <Section title="Isolated Profile">
+        <div className="grid md:grid-cols-3 gap-4">
+          <Select
+            label="Gram Reaction"
+            field="gramReaction"
+            options={["Positive", "Negative"]}
+          />
+          <Select
+            label="Motility"
+            field="motility"
+            options={["Motile", "Non-motile"]}
+          />
+          <Select
+            label="Oxygen Requirement"
+            field="oxygenRequirement"
+            options={[
+              "Aerobic",
+              "Anaerobic",
+              "Facultative Anaerobe",
+            ]}
+          />
+          <Input
+            label="Temperature Preference"
+            field="temperaturePreference"
+          />
+          <Select
+            label="Agar Media"
+            field="agarMedia"
+            options={[
+              "Nutrient Agar",
+              "TSA",
+              "Marine Agar",
+              "Blood Agar",
+            ]}
+          />
+          <Input
+            label="Incubation Time"
+            field="incubationTime"
+          />
+          <Select
+            label="Enzymatic"
+            field="enzymaticActivity"
+            options={[
+              "Catalase",
+              "Oxidase",
+              "Amylase",
+              "Protease",
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* ANTIBACTERIAL ASSAY */}
+      <Section title="Antibacterial Assay">
+        <div className="grid md:grid-cols-2 gap-4">
+          <Select
+            label="Pathogen"
+            field="pathogen"
+            options={[
+              "Escherichia coli",
+              "Staphylococcus aureus",
+              "Pseudomonas aeruginosa",
+            ]}
+          />
+          <Select
+            label="Method"
+            field="assayMethod"
+            options={[
+              "Disk Diffusion",
+              "Well Diffusion",
+            ]}
+          />
+          <Select
+            label="Antimalarial Assay"
+            field="antimalarialAssay"
+            options={["Yes", "No"]}
+          />
+          <Select
+            label="Molecular ID"
+            field="molecularId"
+            options={[
+              "Pending",
+              "Confirmed",
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* MOLECULAR IDENTIFICATION */}
+      <Section title="Molecular Identification">
+        <FileDropzone
+          label="Drag and Drop RAW Sequence File Here"
+          file={formData.microbiology?.rawSequenceFile}
+          onChange={(file) =>
+            updateField("microbiology", "rawSequenceFile", file)
+          }
+        />
+        <div className="grid md:grid-cols-2 gap-4">
+          <Select
+            label="PCR Platform"
+            field="pcrPlatform"
+            options={[
+              "Conventional PCR",
+              "qPCR",
+            ]}
+          />
+          <Select
+            label="PCR Protocol Type"
+            field="pcrProtocolType"
+            options={[
+              "16S rRNA",
+              "ITS",
+              "COI",
+            ]}
+          />
+          <Select
+            label="Sequencing Method"
+            field="sequencingMethod"
+            options={[
+              "Sanger",
+              "Illumina",
+              "Nanopore",
+            ]}
+          />
+          <Select
+            label="Bioinformatics Pipeline"
+            field="bioinformaticsPipeline"
+            options={[
+              "QIIME2",
+              "Mothur",
+              "Custom",
+            ]}
+          />
+          <Select
+            label="Accession / Submission"
+            field="accessionSubmission"
+            options={[
+              "GenBank",
+              "ENA",
+              "DDBJ",
+              "Not Submitted",
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* BIOCHEMICAL TESTS */}
+      <Section title="Biochemical Tests">
+        <div className="grid md:grid-cols-3 gap-2">
+          {[
+            "Catalase",
+            "Oxidase",
+            "Urease",
+            "Gelatin hydrolysis",
+            "Sulfide production",
+            "Nitrate reduction",
+            "Fermentation",
+            "Indole",
+            "Citrate",
+          ].map((test) => (
+            <label
+              key={test}
+              className="flex items-center gap-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                checked={
+                  formData.microbiology?.biochemicalTests?.includes(test) ||
+                  false
                 }
+                onChange={(e) => {
+                  const prev =
+                    formData.microbiology?.biochemicalTests || [];
+                  const updated = e.target.checked
+                    ? [...prev, test]
+                    : prev.filter((t) => t !== test);
+                  updateField(
+                    "microbiology",
+                    "biochemicalTests",
+                    updated
+                  );
+                }}
               />
-            </div>
-          </div>
-        ))}
-
-        {dropZone(isolatedRef, "Drag & Drop Isolated Image Here", "isolated", micro.images.isolated)}
-
-        {section("Isolated Description", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              ["shape","Shape",["Circular","Irregular","Filamentous","Rhizoid"]],
-              ["margin","Margin",["Entire","Undulate","Lobate"]],
-              ["elevation","Elevation",["Flat","Raised","Convex"]],
-              ["color","Color",["White","Cream","Yellow","Orange","Pink"]],
-              ["texture","Texture",["Smooth","Rough","Mucoid"]]
-            ].map(([key,label,opts]) => (
-              <div key={key}>
-                <label className="block mb-1">{label}</label>
-                {select(
-                  micro.isolatedDescription[key],
-                  (e)=>updateSection("microbiology",{
-                    isolatedDescription:{...micro.isolatedDescription,[key]:e.target.value}
-                  }),
-                  `Select ${label}`,
-                  opts
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {dropZone(macroRef, "Drag & Drop Macroscopic Image Here", "macroscopic", micro.images.macroscopic)}
-
-        {section("Macroscopic Morphology", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              ["shape","Macroscopic Shape",["Circular","Irregular","Filamentous"]],
-              ["arrangement","Macroscopic Arrangement",["Single","Clustered","Spreading"]]
-            ].map(([key,label,opts]) => (
-              <div key={key}>
-                <label className="block mb-1">{label}</label>
-                {select(
-                  micro.macroscopicMorphology[key],
-                  (e)=>updateSection("microbiology",{
-                    macroscopicMorphology:{...micro.macroscopicMorphology,[key]:e.target.value}
-                  }),
-                  `Select ${label}`,
-                  opts
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {dropZone(microRef, "Drag & Drop Microscopic Image Here", "microscopic", micro.images.microscopic)}
-
-        {section("Microscopic Morphology", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              ["shape","Microscopic Shape",["Coccus","Bacillus","Vibrio","Spirillum"]],
-              ["arrangement","Microscopic Arrangement",["Single","Diplo","Strepto","Staphylo"]]
-            ].map(([key,label,opts]) => (
-              <div key={key}>
-                <label className="block mb-1">{label}</label>
-                {select(
-                  micro.microscopicMorphology[key],
-                  (e)=>updateSection("microbiology",{
-                    microscopicMorphology:{...micro.microscopicMorphology,[key]:e.target.value}
-                  }),
-                  `Select ${label}`,
-                  opts
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {section("Isolated Profile", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              ["gramReaction","Gram Reaction",["Gram Positive","Gram Negative"]],
-              ["motility","Motility",["Motile","Non-motile"]],
-              ["oxygenRequirement","Oxygen Requirement",["Aerobic","Anaerobic","Facultative"]],
-              ["agarMedia","Agar Media",["NA","TSA","Marine Agar"]],
-              ["enzymatic","Enzymatic",["Amylase","Protease","Lipase"]]
-            ].map(([key,label,opts]) => (
-              <div key={key}>
-                <label className="block mb-1">{label}</label>
-                {select(
-                  micro.isolatedProfile[key],
-                  (e)=>updateSection("microbiology",{
-                    isolatedProfile:{...micro.isolatedProfile,[key]:e.target.value}
-                  }),
-                  `Select ${label}`,
-                  opts
-                )}
-              </div>
-            ))}
-            {["temperaturePreference","incubationTime"].map((key)=>(
-              <div key={key}>
-                <label className="block mb-1 capitalize">{key}</label>
-                {input(
-                  micro.isolatedProfile[key],
-                  (e)=>updateSection("microbiology",{
-                    isolatedProfile:{...micro.isolatedProfile,[key]:e.target.value}
-                  })
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {section("Antibacterial Assay", (
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              ["pathogen","Pathogen",["E. coli","S. aureus","P. aeruginosa"]],
-              ["method","Method",["Disk diffusion","MIC"]],
-              ["antimalarial","Antimalarial Assay",["Positive","Negative"]],
-              ["molecularID","Molecular ID",["16S rRNA","ITS"]]
-            ].map(([key,label,opts]) => (
-              <div key={key}>
-                <label className="block mb-1">{label}</label>
-                {select(
-                  micro.antibacterialAssay[key],
-                  (e)=>updateSection("microbiology",{
-                    antibacterialAssay:{...micro.antibacterialAssay,[key]:e.target.value}
-                  }),
-                  `Select ${label}`,
-                  opts
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {section("Biochemical Tests", (
-          <>
-            <div className="grid md:grid-cols-3 gap-2">
-              {[
-                "Catalase","Oxidase","Urease","Gelatin hydrolysis",
-                "Sulfide production","Nitrate reduction",
-                "Fermentation","Indole","Citrate"
-              ].map((test)=>(
-                <label key={test} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={micro.biochemicalTests.includes(test)}
-                    onChange={()=>toggleTest(test)}
-                  />
-                  {test}
-                </label>
-              ))}
-            </div>
-            <label className="block mt-4 mb-1">Test Notes</label>
-            <textarea
-              className="w-full p-2 border rounded-md"
-              rows={3}
-              value={micro.testNotes}
-              onChange={(e)=>updateSection("microbiology",{ testNotes:e.target.value })}
-            />
-          </>
-        ))}
-
-        <StepNavigation backPath="/add/step1" nextPath="/add/step3" />
-      </div>
+              {test}
+            </label>
+          ))}
+        </div>
+        <Input label="Test Notes" field="biochemicalNotes" />
+      </Section>
     </div>
   );
 }
