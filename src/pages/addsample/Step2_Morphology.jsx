@@ -1,4 +1,5 @@
-import React from "react";
+// src/pages/addsample/Step2_Morphology.jsx
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSampleForm } from "../../context/SampleFormContext";
 import FormProgressBar from "../../components/FormProgressBar";
@@ -6,11 +7,11 @@ import FormProgressBar from "../../components/FormProgressBar";
 export default function Step2_Morphology() {
   const navigate = useNavigate();
   const { formData, updateSection } = useSampleForm();
-  const morphology = formData.morphology;
+  const morphology = formData.morphology || {};
 
   /* ================= FILE HANDLERS ================= */
   const handleMultipleImages = (field, files) => {
-    const mapped = Array.from(files).map(file => ({
+    const mapped = Array.from(files).map((file) => ({
       file,
       preview: URL.createObjectURL(file),
     }));
@@ -20,19 +21,22 @@ export default function Step2_Morphology() {
     });
   };
 
-  const handleSingleImage = (field, file) => {
-    if (!file) return;
-    updateSection("morphology", {
-      [field]: {
-        file,
-        preview: URL.createObjectURL(file),
-      },
-    });
-  };
-
   const handleChange = (field, value) => {
     updateSection("morphology", { [field]: value });
   };
+
+  /* ================= CLEANUP (avoid memory leak) ================= */
+  useEffect(() => {
+    return () => {
+      morphology.semPhotos?.forEach((img) =>
+        URL.revokeObjectURL(img.preview)
+      );
+      morphology.microscopePhotos?.forEach((img) =>
+        URL.revokeObjectURL(img.preview)
+      );
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ================= UI ================= */
   return (
@@ -47,13 +51,19 @@ export default function Step2_Morphology() {
         {/* ================= SEM PHOTOS ================= */}
         <section>
           <h3 className="font-semibold text-lg mb-3">SEM Photos</h3>
-          <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition">
+
+          <label
+            aria-label="Upload SEM photos"
+            className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition"
+          >
             <input
               type="file"
               multiple
               accept="image/*"
               hidden
-              onChange={(e) => handleMultipleImages("semPhotos", e.target.files)}
+              onChange={(e) =>
+                handleMultipleImages("semPhotos", e.target.files)
+              }
             />
             <p className="text-gray-500">
               Drag & drop or click to upload SEM images
@@ -76,15 +86,24 @@ export default function Step2_Morphology() {
 
         {/* ================= MICROSCOPE PHOTOS ================= */}
         <section>
-          <h3 className="font-semibold text-lg mb-3">Microscopic Photos</h3>
-          <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition">
+          <h3 className="font-semibold text-lg mb-3">
+            Microscopic Photos
+          </h3>
+
+          <label
+            aria-label="Upload microscope photos"
+            className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition"
+          >
             <input
               type="file"
               multiple
               accept="image/*"
               hidden
               onChange={(e) =>
-                handleMultipleImages("microscopePhotos", e.target.files)
+                handleMultipleImages(
+                  "microscopePhotos",
+                  e.target.files
+                )
               }
             />
             <p className="text-gray-500">
@@ -106,43 +125,6 @@ export default function Step2_Morphology() {
           )}
         </section>
 
-        {/* ================= PETRI & GRAM ================= */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Petri Dish */}
-          <div>
-            <h3 className="font-semibold mb-2">Petri Dish Photo</h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleSingleImage("petriPhoto", e.target.files[0])}
-              className="w-full border rounded-lg px-3 py-2"
-            />
-            {morphology.petriPhoto?.preview && (
-              <img
-                src={morphology.petriPhoto.preview}
-                className="mt-3 w-full h-48 object-cover rounded-lg shadow"
-              />
-            )}
-          </div>
-
-          {/* Gram Staining */}
-          <div>
-            <h3 className="font-semibold mb-2">Gram Staining Photo</h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleSingleImage("gramPhoto", e.target.files[0])}
-              className="w-full border rounded-lg px-3 py-2"
-            />
-            {morphology.gramPhoto?.preview && (
-              <img
-                src={morphology.gramPhoto.preview}
-                className="mt-3 w-full h-48 object-cover rounded-lg shadow"
-              />
-            )}
-          </div>
-        </section>
-
         {/* ================= NOTES ================= */}
         <section>
           <h3 className="font-semibold mb-2">Morphology Notes</h3>
@@ -151,7 +133,7 @@ export default function Step2_Morphology() {
             onChange={(e) => handleChange("notes", e.target.value)}
             rows={4}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
-            placeholder="Describe morphology observations, structure, textures, etc."
+            placeholder="Describe morphology observations, structure, textures, size, or notable features"
           />
         </section>
 

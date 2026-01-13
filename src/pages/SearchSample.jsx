@@ -1,14 +1,18 @@
-// src/pages/SearchSample.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PlusCircle,
   Edit3,
   Search as SearchIcon,
-  ChevronRight
+  ChevronRight,
+  Calendar
 } from "lucide-react";
+import { DateRange } from "react-date-range";
 import { useSampleFormContext } from "../context/SampleFormContext";
+
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
 const STORAGE_KEY = "merobase_samples";
 
@@ -23,8 +27,13 @@ export default function SearchSample() {
   const [kingdom, setKingdom] = useState("");
   const [projectType, setProjectType] = useState("");
   const [sampleType, setSampleType] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+
+  /* ===== Date Range ===== */
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef(null);
+  const [range, setRange] = useState([
+    { startDate: null, endDate: null, key: "selection" }
+  ]);
 
   /* ================= LOAD LOCALSTORAGE ================= */
   useEffect(() => {
@@ -53,18 +62,23 @@ export default function SearchSample() {
   const filteredSamples = useMemo(() => {
     return samples.filter(sample => {
       const m = sample.metadata || {};
-
-      const searchable = Object.values(m)
-        .join(" ")
-        .toLowerCase();
+      const searchable = Object.values(m).join(" ").toLowerCase();
 
       const matchesQuery = searchable.includes(query.toLowerCase());
       const matchesKingdom = !kingdom || m.kingdom === kingdom;
       const matchesProject = !projectType || m.projectType === projectType;
       const matchesType = !sampleType || m.sampleType === sampleType;
-      const matchesDate =
-        (!dateFrom || new Date(m.collectionDate) >= new Date(dateFrom)) &&
-        (!dateTo || new Date(m.collectionDate) <= new Date(dateTo));
+
+      let matchesDate = true;
+      if (
+        range[0].startDate &&
+        range[0].endDate &&
+        m.collectionDate
+      ) {
+        const d = new Date(m.collectionDate);
+        matchesDate =
+          d >= range[0].startDate && d <= range[0].endDate;
+      }
 
       return (
         matchesQuery &&
@@ -74,7 +88,14 @@ export default function SearchSample() {
         matchesDate
       );
     });
-  }, [samples, query, kingdom, projectType, sampleType, dateFrom, dateTo]);
+  }, [
+    samples,
+    query,
+    kingdom,
+    projectType,
+    sampleType,
+    range
+  ]);
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">
@@ -147,7 +168,7 @@ export default function SearchSample() {
                 placeholder="Search by any keyword..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                className="pl-10 w-full border rounded-lg px-3 py-2 focus:ring focus:ring-blue-200"
+                className="pl-10 w-full border rounded-lg px-3 py-2"
               />
             </div>
 
@@ -159,9 +180,7 @@ export default function SearchSample() {
             >
               <option value="">All Kingdoms</option>
               {kingdoms.map(k => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
+                <option key={k} value={k}>{k}</option>
               ))}
             </select>
 
@@ -173,9 +192,7 @@ export default function SearchSample() {
             >
               <option value="">All Projects</option>
               {projectTypes.map(p => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
+                <option key={p} value={p}>{p}</option>
               ))}
             </select>
 
@@ -191,18 +208,30 @@ export default function SearchSample() {
             </select>
 
             {/* Date Range */}
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="border rounded-lg px-3 py-2"
-            />
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="border rounded-lg px-3 py-2"
-            />
+            <div ref={pickerRef} className="relative md:col-span-2">
+              <label className="text-sm font-semibold flex items-center gap-1 mb-1">
+                <Calendar size={14} /> Collection Date
+              </label>
+              <button
+                onClick={() => setShowPicker(!showPicker)}
+                className="w-full px-4 py-2 border rounded-lg text-left bg-white"
+              >
+                {range[0].startDate && range[0].endDate
+                  ? `${range[0].startDate.toLocaleDateString()} – ${range[0].endDate.toLocaleDateString()}`
+                  : "Select date range"}
+              </button>
+
+              {showPicker && (
+                <div className="absolute z-50 mt-2">
+                  <DateRange
+                    ranges={range}
+                    onChange={(item) =>
+                      setRange([item.selection])
+                    }
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -234,7 +263,7 @@ export default function SearchSample() {
                     onClick={() =>
                       navigate(`/sampledetails/${sample.metadata?.sampleId || sample.id}`)
                     }
-                    className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded"
                   >
                     Details
                   </button>
@@ -243,7 +272,7 @@ export default function SearchSample() {
                       loadSampleForEdit(sample);
                       navigate("/add/step1");
                     }}
-                    className="flex-1 px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                    className="flex-1 px-3 py-2 text-sm bg-gray-200 rounded"
                   >
                     Edit
                   </button>

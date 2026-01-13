@@ -1,4 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState
+} from "react";
 
 const SampleFormContext = createContext(null);
 
@@ -37,52 +42,66 @@ export function SampleFormProvider({ children }) {
     },
 
     microbiology: {
-      storageBox: {
-        boxID: "",
+      primaryIsolatedData: {
+        isolatedId: "",
         shelf: "",
         position: "",
-        temperature: "",
+        storageTemperature: "",
+        agarMedia: "",
+        solvent: "",
+        incubationTemperature: "",
+        incubationTime: "",
+        oxygenRequirement: "",
         notes: ""
       },
+
       images: {
         isolated: null,
-        macroscopic: null,
         microscopic: null
       },
-      isolatedDescription: {
-        shape: "",
-        margin: "",
-        elevation: "",
-        color: "",
-        texture: ""
-      },
+
       macroscopicMorphology: {
         shape: "",
         arrangement: ""
       },
+
+      colonyDescription: {
+        shape: "",
+        margin: "",
+        elevation: "",
+        color: "",
+        texture: "",
+        motility: ""
+      },
+
       microscopicMorphology: {
         shape: "",
-        arrangement: "" 
+        arrangement: "",
+        gramReaction: ""
       },
+
+      antibacterialAssay: {
+        pathogen: "",
+        method: "",
+        antimalarial: "",
+        molecularId: ""
+      },
+
+      biochemicalTests: [],
+      enzymaticTests: [],
+      testNotes: "",
+
       molecularIdentification: {
-        rawSequenceFiles: [],
+        identified: "",
+        speciesName: "",
         pcrPlatform: "",
         pcrProtocolType: "",
         sequencingMethod: "",
         bioinformaticsPipeline: "",
-        accessionStatus: ""
-      },
-      isolatedProfile: {
-        gramReaction: "",
-        motility: "",
-        oxygenRequirement: "",
-        temperaturePreference: "",
-        agarMedia: "",
-        incubationTime: "",
-        enzymatic: ""
-      },
-      biochemicalTests: [],
-      testNotes: ""
+        accessionStatus: "",
+        accessionNumber: "",
+        rawSequenceFiles: []
+      }
     },
 
     molecular: {
@@ -92,15 +111,15 @@ export function SampleFormProvider({ children }) {
       dnaSource: "",
       extractionKit: "",
       extractionMethod: "",
-      primerSet: "",
-      pcrPlatform: "",
-      pcrProtocol: "",
+      primerSet: { forward: "", reverse: "" },
+      pcrMethod: "",
+      pcrProtocolType: "",
       sequencingMethod: "",
-      sequencingVendor: "",
       sequencingQuality: "",
       bioinformaticsPipeline: "",
       accessionStatus: "",
-      dnaConcentration: "",
+      accessionNumber: "",
+      dnaConcentrationRange: "",
       phylogeneticNotes: ""
     },
 
@@ -109,8 +128,8 @@ export function SampleFormProvider({ children }) {
     }
   };
 
-  /* ================= MODE STATE ================= */
-  const [mode, setMode] = useState("add"); // "add" | "edit"
+  /* ================= MODE ================= */
+  const [mode, setMode] = useState("add"); // add | edit
   const [editingSampleId, setEditingSampleId] = useState(null);
 
   /* ================= FORM STATE ================= */
@@ -123,16 +142,24 @@ export function SampleFormProvider({ children }) {
     }
   });
 
-  /* ================= AUTOSAVE DRAFT ================= */
+  /* ================= AUTOSAVE ================= */
   useEffect(() => {
-    localStorage.setItem("merobase_addsample_draft", JSON.stringify(formData));
+    try {
+      localStorage.setItem(
+        "merobase_addsample_draft",
+        JSON.stringify(formData)
+      );
+    } catch {}
   }, [formData]);
 
   /* ================= HELPERS ================= */
   const updateSection = (section, value) => {
     setFormData(prev => ({
       ...prev,
-      [section]: { ...prev[section], ...value }
+      [section]: {
+        ...prev[section],
+        ...value
+      }
     }));
   };
 
@@ -143,75 +170,97 @@ export function SampleFormProvider({ children }) {
     }));
   };
 
-  const clearDraft = () => {
-    localStorage.removeItem("merobase_addsample_draft");
-    setFormData(initial);
-    setMode("add");
-    setEditingSampleId(null);
-  };
-
   /* ================= EDIT MODE ================= */
-  /**
-   * Load an existing sample into wizard (EDIT MODE)
-   */
   const loadSampleForEdit = (sample) => {
     if (!sample?.metadata?.sampleId) {
       console.error("Invalid sample passed to edit");
       return;
     }
 
-    setFormData(sample);
     setMode("edit");
     setEditingSampleId(sample.metadata.sampleId);
+    setFormData(sample);
 
-    // save draft
-    localStorage.setItem("merobase_addsample_draft", JSON.stringify(sample));
+    localStorage.setItem(
+      "merobase_addsample_draft",
+      JSON.stringify(sample)
+    );
   };
 
-  /**
-   * Add or overwrite sample in localStorage
-   */
+  /* ================= CLEAR ================= */
+  const clearDraftOnly = () => {
+    localStorage.removeItem("merobase_addsample_draft");
+    setFormData(initial);
+  };
+
+  const exitEditMode = () => {
+    setMode("add");
+    setEditingSampleId(null);
+  };
+
+  /* ================= SUBMIT ================= */
   const submitSampleToLocalStorage = () => {
     let samples = [];
+
     try {
-      samples = JSON.parse(localStorage.getItem("merobase_samples")) || [];
+      samples =
+        JSON.parse(localStorage.getItem("merobase_samples")) || [];
     } catch {
       samples = [];
     }
 
     if (mode === "edit") {
-      // Overwrite the existing sample
-      const updatedSamples = samples.map(s =>
-        s.metadata.sampleId === editingSampleId
-          ? {
-              ...formData,
-              metadata: { ...formData.metadata, sampleId: editingSampleId },
-              lastEdited: new Date().toISOString()
-            }
-          : s
+      if (!editingSampleId) {
+        console.error("Edit mode active but no editingSampleId");
+        return;
+      }
+
+      const index = samples.findIndex(
+        s => s.metadata?.sampleId === editingSampleId
       );
 
-      localStorage.setItem("merobase_samples", JSON.stringify(updatedSamples));
-    } else {
-      // Add new sample
-      const newSampleId = formData.metadata.sampleId || `SAMPLE-${Date.now()}`;
-      const newSample = {
+      if (index === -1) {
+        console.error("Edit failed: sample not found");
+        return;
+      }
+
+      samples[index] = {
         ...formData,
-        metadata: { ...formData.metadata, sampleId: newSampleId },
-        createdAt: new Date().toISOString()
+        metadata: {
+          ...formData.metadata,
+          sampleId: editingSampleId
+        },
+        lastEdited: new Date().toISOString()
       };
+
       localStorage.setItem(
         "merobase_samples",
-        JSON.stringify([newSample, ...samples])
+        JSON.stringify(samples)
       );
+
+      clearDraftOnly();
+      return;
     }
 
-    clearDraft(); // reset form and mode
-  };
+    /* ---------- ADD MODE ---------- */
+    const newSampleId =
+      formData.metadata.sampleId || `SAMPLE-${Date.now()}`;
 
-  /* ================= MOCK UPLOAD ================= */
-  const uploadToCloudinaryBase64 = async (base64, name) => {
-    return { url: base64, name, uploadedAt: new Date().toISOString() };
+    const newSample = {
+      ...formData,
+      metadata: {
+        ...formData.metadata,
+        sampleId: newSampleId
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(
+      "merobase_samples",
+      JSON.stringify([newSample, ...samples])
+    );
+
+    clearDraftOnly();
   };
 
   /* ================= PROVIDER ================= */
@@ -226,8 +275,8 @@ export function SampleFormProvider({ children }) {
         editingSampleId,
         loadSampleForEdit,
         submitSampleToLocalStorage,
-        clearDraft,
-        uploadToCloudinaryBase64
+        clearDraftOnly,
+        exitEditMode
       }}
     >
       {children}
@@ -238,7 +287,11 @@ export function SampleFormProvider({ children }) {
 /* ================= HOOK ================= */
 export const useSampleFormContext = () => {
   const ctx = useContext(SampleFormContext);
-  if (!ctx) throw new Error("useSampleFormContext must be used inside SampleFormProvider");
+  if (!ctx) {
+    throw new Error(
+      "useSampleFormContext must be used inside SampleFormProvider"
+    );
+  }
   return ctx;
 };
 

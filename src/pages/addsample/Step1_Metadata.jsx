@@ -1,339 +1,256 @@
-// src/pages/addsample/Step1_Metadata.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+
 import FormProgressBar from "../../components/FormProgressBar";
 import { useSampleForm } from "../../context/SampleFormContext";
+
+/* ================= DROPDOWN DATA ================= */
+
+const DIVE_SITES = [
+  "USAT Liberty – Tulamben",
+  "Tulamben Drop Off",
+  "Coral Garden – Tulamben",
+  "Kubu Wall",
+  "Batu Kelebit",
+  "Secret Bay – Gilimanuk",
+  "Pemuteran Reef",
+  "Menjangan Island",
+  "Other",
+];
+
+const SUBSTRATES = [
+  "Live Coral",
+  "Dead Coral",
+  "Rubble",
+  "Sand",
+  "Mud",
+  "Rock",
+  "Seagrass",
+  "Artificial Structure",
+  "Other",
+];
+
+const KINGDOMS = [
+  "Animalia",
+  "Plantae",
+  "Fungi",
+  "Protista",
+  "Bacteria",
+  "Archaea",
+  "Undetermined",
+];
+
+const STORAGE_LOCATIONS = [
+  "Cool Room (4°C)",
+  "Refrigerator (4°C)",
+  "Freezer (-20°C)",
+  "Ultra Freezer (-80°C)",
+  "Room Temperature",
+  "Ethanol Preserved",
+  "Formalin Preserved",
+];
+
+/* ================= MAIN ================= */
 
 export default function Step1_Metadata() {
   const navigate = useNavigate();
   const { formData, updateSection } = useSampleForm();
   const metadata = formData.metadata;
 
-  const [preview, setPreview] = useState(
-    metadata.samplePhoto?.preview || null
-  );
+  /* ================= COLLAPSE ================= */
+  const [open, setOpen] = useState({
+    photo: true,
+    general: true,
+    bio: true,
+    molecular: false,
+    map: true,
+  });
 
-  const tulambenSites = [
-    "USAT Liberty",
-    "Tulamben Drop Off",
-    "Kubu Wall",
-    "Pyramids",
-    "Batu Kelebit",
-  ];
+  const toggle = (k) => setOpen((p) => ({ ...p, [k]: !p[k] }));
 
-  const substrateOptions = ["Sand", "Rock", "Coral", "Mud", "Other"];
-  const kingdoms = ["Undecided", "Animalia", "Plantae", "Fungi", "Other"];
-  const storageOptions = [
-    "Cool Room",
-    "Freezer",
-    "Refrigerator",
-    "Room Temperature",
-  ];
-
-  const handleChange = (field, value) => {
+  /* ================= HELPERS ================= */
+  const setValue = (field, value) =>
     updateSection("metadata", { [field]: value });
-  };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleImage = (field, file) => {
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = () => {
-      updateSection("metadata", {
-        samplePhoto: {
-          name: file.name,
-          data: reader.result,
-          preview: reader.result,
-        },
+    reader.onload = () =>
+      setValue(field, {
+        name: file.name,
+        data: reader.result,
+        preview: reader.result,
       });
-      setPreview(reader.result);
-    };
     reader.readAsDataURL(file);
   };
 
-  const LocationMarker = () => {
-    const [position, setPosition] = useState(
+  const handleFile = (field, file) => {
+    if (!file) return;
+    setValue(field, {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+  };
+
+  /* ================= MAP ================= */
+  function LocationMarker() {
+    const [pos, setPos] = useState(
       metadata.latitude && metadata.longitude
         ? [metadata.latitude, metadata.longitude]
         : null
     );
 
+    useEffect(() => {
+      if (metadata.latitude && metadata.longitude) {
+        setPos([metadata.latitude, metadata.longitude]);
+      }
+    }, [metadata.latitude, metadata.longitude]);
+
     useMapEvents({
       click(e) {
-        const { lat, lng } = e.latlng;
-        setPosition([lat, lng]);
-        handleChange("latitude", lat);
-        handleChange("longitude", lng);
+        setPos([e.latlng.lat, e.latlng.lng]);
+        setValue("latitude", e.latlng.lat);
+        setValue("longitude", e.latlng.lng);
       },
     });
 
-    return position ? <Marker position={position} /> : null;
-  };
+    return pos ? <Marker position={pos} /> : null;
+  }
 
+  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex justify-center">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-8 space-y-8">
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-xl p-8 space-y-8">
         <FormProgressBar step={1} steps={6} />
 
-        {/* ================= HEADER ================= */}
-        <div className="border-b pb-4">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Base Sample Data
-          </h2>
+        {/* ================= TITLE ================= */}
+        <header className="border-b pb-4">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Base Sample Metadata
+          </h1>
           <p className="text-sm text-gray-500">
-            Basic sample information and location
+            Core information describing the collected sample
           </p>
-        </div>
+        </header>
 
         {/* ================= SAMPLE PHOTO ================= */}
-        <div>
-          <h3 className="font-semibold text-gray-700 mb-2">Sample Photo</h3>
-          <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer hover:border-blue-400 transition">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            {!preview ? (
-              <span className="text-gray-400">
-                Drag & drop or click to upload
-              </span>
-            ) : (
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-48 h-48 object-cover rounded-lg shadow"
-              />
-            )}
-          </label>
-        </div>
+        <Box
+          title="Sample Photo"
+          open={open.photo}
+          toggle={() => toggle("photo")}
+        >
+          <Dropzone
+            label="Drag & drop or click to upload sample photo"
+            preview={metadata.samplePhoto?.preview}
+            onFile={(f) => handleImage("samplePhoto", f)}
+          />
+        </Box>
 
-        {/* ================= GENERAL METADATA ================= */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Sample Type">
-            <select
-              value={metadata.sampleType}
-              onChange={(e) =>
-                handleChange("sampleType", e.target.value)
-              }
-              className="input"
-            >
-              <option value="Biological">Biological</option>
-              <option value="Non-Biological">Non-Biological</option>
-            </select>
-          </Field>
+        {/* ================= GENERAL ================= */}
+        <Box
+          title="General Sample Information"
+          open={open.general}
+          toggle={() => toggle("general")}
+        >
+          <Grid>
+            <Select label="Sample Type" value={metadata.sampleType}
+              onChange={(v) => setValue("sampleType", v)}
+              options={["Biological", "Non-Biological"]} />
 
-          <Field label="Sample Name">
-            <input
-              className="input"
-              value={metadata.sampleName}
-              onChange={(e) => handleChange("sampleName", e.target.value)}
-            />
-          </Field>
+            <Input label="Sample Name" value={metadata.sampleName}
+              onChange={(v) => setValue("sampleName", v)} />
 
-          <Field label="Sample Number">
-            <input
-              className="input"
-              value={metadata.sampleNumber}
-              onChange={(e) =>
-                handleChange("sampleNumber", e.target.value)
-              }
-            />
-          </Field>
+            <Input label="Sample Number" value={metadata.sampleNumber}
+              onChange={(v) => setValue("sampleNumber", v)} />
 
-          <Field label="Sample Length (cm)">
-            <input
-              type="number"
-              className="input"
+            <Input label="Sample Length (cm)" type="number"
               value={metadata.sampleLength || ""}
-              onChange={(e) =>
-                handleChange("sampleLength", e.target.value)
-              }
-            />
-          </Field>
+              onChange={(v) => setValue("sampleLength", v)} />
 
-          <Field label="Dive Site">
-            <select
-              className="input"
-              value={metadata.diveSite}
-              onChange={(e) => handleChange("diveSite", e.target.value)}
-            >
-              <option value="">Select site</option>
-              {tulambenSites.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Select label="Dive Site" value={metadata.diveSite || ""}
+              onChange={(v) => setValue("diveSite", v)}
+              options={DIVE_SITES} />
 
-          <Field label="Depth (m)">
-            <input
-              type="number"
-              className="input"
+            <Input label="Depth (m)" type="number"
               value={metadata.depth || ""}
-              onChange={(e) => handleChange("depth", e.target.value)}
-            />
-          </Field>
+              onChange={(v) => setValue("depth", v)} />
 
-          <Field label="Temperature (°C)">
-            <input
-              type="number"
-              className="input"
+            <Input label="Temperature (°C)" type="number"
               value={metadata.temperature || ""}
-              onChange={(e) =>
-                handleChange("temperature", e.target.value)
-              }
-            />
-          </Field>
+              onChange={(v) => setValue("temperature", v)} />
 
-          <Field label="Substrate">
-            <select
-              className="input"
-              value={metadata.substrate || ""}
-              onChange={(e) =>
-                handleChange("substrate", e.target.value)
-              }
-            >
-              <option value="">Select substrate</option>
-              {substrateOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Select label="Substrate" value={metadata.substrate || ""}
+              onChange={(v) => setValue("substrate", v)}
+              options={SUBSTRATES} />
 
-          <Field label="Project Type">
-            <select
-              className="input"
-              value={metadata.projectType}
-              onChange={(e) =>
-                handleChange("projectType", e.target.value)
-              }
-            >
-              <option value="A">A</option>
-              <option value="B">B</option>
-            </select>
-          </Field>
+            <Select label="Project Type" value={metadata.projectType}
+              onChange={(v) => setValue("projectType", v)}
+              options={["A", "B"]} />
 
-          <Field label="Project Number">
-            <input
-              className="input"
-              value={metadata.projectNumber}
-              onChange={(e) =>
-                handleChange("projectNumber", e.target.value)
-              }
-            />
-          </Field>
+            <Input label="Project Number" value={metadata.projectNumber}
+              onChange={(v) => setValue("projectNumber", v)} />
 
-          <Field label="Collector Name">
-            <input
-              className="input"
-              value={metadata.collectorName}
-              onChange={(e) =>
-                handleChange("collectorName", e.target.value)
-              }
-            />
-          </Field>
-        </div>
+            <Input label="Date Acquired" type="date"
+              value={metadata.dateAcquired || ""}
+              onChange={(v) => setValue("dateAcquired", v)} />
 
-        {/* ================= BIO / NON-BIO ================= */}
-        <div className="border-t pt-6">
+            <Input label="Collector Name" value={metadata.collectorName}
+              onChange={(v) => setValue("collectorName", v)} />
+          </Grid>
+        </Box>
+
+        {/* ================= BIO / NON BIO ================= */}
+        <Box
+          title="Biological Classification & Storage"
+          open={open.bio}
+          toggle={() => toggle("bio")}
+        >
           {metadata.sampleType === "Biological" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Field label="Kingdom">
-                <select
-                  className="input"
-                  value={metadata.kingdom}
-                  onChange={(e) =>
-                    handleChange("kingdom", e.target.value)
-                  }
-                >
-                  {kingdoms.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+            <Grid>
+              <Select label="Kingdom" value={metadata.kingdom || ""}
+                onChange={(v) => setValue("kingdom", v)}
+                options={KINGDOMS} />
 
-              <Field label="Genus">
-                <input
-                  className="input"
-                  value={metadata.genus}
-                  onChange={(e) =>
-                    handleChange("genus", e.target.value)
-                  }
-                />
-              </Field>
+              <Input label="Genus" value={metadata.genus}
+                onChange={(v) => setValue("genus", v)} />
 
-              <Field label="Family">
-                <input
-                  className="input"
-                  value={metadata.family}
-                  onChange={(e) =>
-                    handleChange("family", e.target.value)
-                  }
-                />
-              </Field>
+              <Input label="Family" value={metadata.family}
+                onChange={(v) => setValue("family", v)} />
 
-              <Field label="Species">
-                <input
-                  className="input"
-                  value={metadata.species}
-                  onChange={(e) =>
-                    handleChange("species", e.target.value)
-                  }
-                />
-              </Field>
+              <Input label="Species" value={metadata.species}
+                onChange={(v) => setValue("species", v)} />
 
-              <Field label="Storage Location" full>
-                <select
-                  className="input"
-                  value={metadata.storageLocation}
-                  onChange={(e) =>
-                    handleChange("storageLocation", e.target.value)
-                  }
-                >
-                  {storageOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
+              <Select label="Storage Location" full
+                value={metadata.storageLocation || ""}
+                onChange={(v) => setValue("storageLocation", v)}
+                options={STORAGE_LOCATIONS} />
+            </Grid>
           ) : (
-            <Field label="Storage Location">
-              <select
-                className="input"
-                value={metadata.storageLocation}
-                onChange={(e) =>
-                  handleChange("storageLocation", e.target.value)
-                }
-              >
-                {storageOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <Select label="Storage Location"
+              value={metadata.storageLocation || ""}
+              onChange={(v) => setValue("storageLocation", v)}
+              options={STORAGE_LOCATIONS} />
           )}
-        </div>
-
+        </Box>
+        
         {/* ================= MAP ================= */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-700">Map Location Picker</h3>
-          <div className="h-64 rounded-xl overflow-hidden shadow">
+        <Box
+          title="Map Location Picker"
+          open={open.map}
+          toggle={() => toggle("map")}
+        >
+          <div className="h-64 rounded-xl overflow-hidden shadow mb-4">
             <MapContainer
-              center={[-8.342, 115.544]}
-              zoom={13}
+              center={[-8.34, 115.54]}
+              zoom={12}
               className="h-full w-full"
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -341,31 +258,25 @@ export default function Step1_Metadata() {
             </MapContainer>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Field label="Latitude">
-              <input className="input" value={metadata.latitude || ""} readOnly />
-            </Field>
-            <Field label="Longitude">
-              <input
-                className="input"
-                value={metadata.longitude || ""}
-                readOnly
-              />
-            </Field>
-          </div>
-        </div>
+          <Grid>
+            <Input label="Latitude" value={metadata.latitude || ""}
+              onChange={(v) => setValue("latitude", v)} />
+            <Input label="Longitude" value={metadata.longitude || ""}
+              onChange={(v) => setValue("longitude", v)} />
+          </Grid>
+        </Box>
 
         {/* ================= NAV ================= */}
         <div className="flex justify-between pt-6">
           <button
             onClick={() => navigate("/dashboard")}
-            className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm"
           >
             Cancel
           </button>
           <button
             onClick={() => navigate("/add/step2")}
-            className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm"
           >
             Next
           </button>
@@ -375,14 +286,96 @@ export default function Step1_Metadata() {
   );
 }
 
-/* ================= REUSABLE FIELD ================= */
-function Field({ label, children, full }) {
+/* ================= REUSABLE UI ================= */
+
+function Box({ title, open, toggle, children }) {
+  return (
+    <section className="border rounded-xl shadow-sm">
+      <button
+        onClick={toggle}
+        className="w-full flex justify-between items-center px-6 py-4 bg-gray-100 rounded-t-xl"
+      >
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <span className="text-sm">{open ? "−" : "+"}</span>
+      </button>
+      {open && <div className="p-6">{children}</div>}
+    </section>
+  );
+}
+
+function Grid({ children }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {children}
+    </div>
+  );
+}
+
+function Input({ label, value, onChange, type = "text", full }) {
   return (
     <div className={full ? "md:col-span-2" : ""}>
-      <label className="block text-sm font-medium text-gray-600 mb-1">
-        {label}
-      </label>
-      {children}
+      <label className="block text-sm mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border px-3 py-2 text-base"
+      />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options, full }) {
+  return (
+    <div className={full ? "md:col-span-2" : ""}>
+      <label className="block text-sm mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border px-3 py-2 text-base"
+      >
+        <option value="">Select {label}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function Dropzone({ label, preview, onFile }) {
+  return (
+    <div
+      className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-blue-400"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        onFile(e.dataTransfer.files[0]);
+      }}
+    >
+      <input type="file" hidden />
+      {!preview ? (
+        <p className="text-sm text-gray-400">{label}</p>
+      ) : (
+        <img src={preview} className="mx-auto h-48 object-cover rounded-lg" />
+      )}
+    </div>
+  );
+}
+
+function FileDrop({ label, file, onFile }) {
+  return (
+    <div
+      className="border-2 border-dashed rounded-xl p-6 text-center"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        onFile(e.dataTransfer.files[0]);
+      }}
+    >
+      <p className="text-sm text-gray-500">
+        {file ? file.name : label}
+      </p>
     </div>
   );
 }

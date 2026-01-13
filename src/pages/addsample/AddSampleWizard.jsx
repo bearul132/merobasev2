@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { SampleFormProvider, useSampleFormContext } from "../../context/SampleFormContext";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -8,6 +7,7 @@ import {
   Search,
   ChevronRight,
 } from "lucide-react";
+import { useSampleFormContext } from "../../context/SampleFormContext";
 
 /* ================= Wizard Steps ================= */
 const steps = [
@@ -24,40 +24,32 @@ export default function AddSampleWizard() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  /* ================= EDIT MODE DETECTION ================= */
-  const isEditMode = location.state?.mode === "edit";
-  const editSampleData = location.state?.sample || null;
-
   const currentStepIndex = steps.findIndex(
     (step) => step.path === location.pathname
   );
 
   const goNext = () => {
     if (currentStepIndex < steps.length - 1) {
-      navigate(steps[currentStepIndex + 1].path, { state: location.state });
+      navigate(steps[currentStepIndex + 1].path);
     }
   };
 
   const goBack = () => {
     if (currentStepIndex > 0) {
-      navigate(steps[currentStepIndex - 1].path, { state: location.state });
+      navigate(steps[currentStepIndex - 1].path);
     }
   };
 
   return (
-    <SampleFormProvider>
-      <WizardLayout
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        isEditMode={isEditMode}
-        editSampleData={editSampleData}
-        currentStepIndex={currentStepIndex}
-        goNext={goNext}
-        goBack={goBack}
-      >
-        <Outlet />
-      </WizardLayout>
-    </SampleFormProvider>
+    <WizardLayout
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+      currentStepIndex={currentStepIndex}
+      goNext={goNext}
+      goBack={goBack}
+    >
+      <Outlet />
+    </WizardLayout>
   );
 }
 
@@ -65,23 +57,13 @@ export default function AddSampleWizard() {
 function WizardLayout({
   sidebarOpen,
   setSidebarOpen,
-  isEditMode,
-  editSampleData,
   currentStepIndex,
   goNext,
   goBack,
   children,
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { loadSampleForEdit } = useSampleFormContext();
-
-  /* ================= Load Edit Sample ================= */
-  useEffect(() => {
-    if (isEditMode && editSampleData) {
-      loadSampleForEdit(editSampleData);
-    }
-  }, [isEditMode, editSampleData, loadSampleForEdit]);
+  const { mode } = useSampleFormContext(); // ✅ SINGLE SOURCE OF TRUTH
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
@@ -94,7 +76,11 @@ function WizardLayout({
         } flex flex-col`}
       >
         <div className="flex items-center gap-2 p-4">
-          <ChevronRight className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`} />
+          <ChevronRight
+            className={`transition-transform ${
+              sidebarOpen ? "rotate-90" : ""
+            }`}
+          />
           {sidebarOpen && (
             <h1 className="text-lg font-bold text-gray-700">MEROBase</h1>
           )}
@@ -111,7 +97,7 @@ function WizardLayout({
             icon={<PlusCircle className="text-green-600" />}
             label="Add Sample"
             open={sidebarOpen}
-            onClick={() => navigate("/add/step1", { state: { mode: "add" } })}
+            onClick={() => navigate("/add/step1")}
           />
           <SidebarButton
             icon={<Edit3 className="text-yellow-600" />}
@@ -129,15 +115,21 @@ function WizardLayout({
       </div>
 
       {/* ================= Main Content ================= */}
-      <div className={`flex-1 p-6 transition-all ${sidebarOpen ? "ml-56" : "ml-16"}`}>
+      <div
+        className={`flex-1 p-6 transition-all ${
+          sidebarOpen ? "ml-56" : "ml-16"
+        }`}
+      >
         <div className="mx-auto max-w-4xl bg-white rounded-2xl shadow-lg p-6">
           {/* Header */}
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold text-gray-800">
-              {isEditMode ? "MEROBASE: Modify Sample" : "MEROBASE: Input Sample"}
+              {mode === "edit"
+                ? "MEROBASE: Modify Sample"
+                : "MEROBASE: Input Sample"}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {isEditMode
+              {mode === "edit"
                 ? "You are editing an existing sample."
                 : "Create a new sample entry (frontend-only)."}
             </p>
@@ -149,7 +141,6 @@ function WizardLayout({
               <NavLink
                 key={step.path}
                 to={step.path}
-                state={{ mode: isEditMode ? "edit" : "add", sample: editSampleData }}
                 className={({ isActive }) =>
                   `px-3 py-1 rounded-full transition ${
                     isActive
