@@ -1,381 +1,153 @@
-import React, { useRef, useState } from "react";
-import { useSampleFormContext } from "../../context/SampleFormContext";
-import StepNavigation from "../../components/StepNavigation";
+// src/pages/addsample/Step4_Molecular.jsx
+import { useState } from "react";
 import FormProgressBar from "../../components/FormProgressBar";
+import StepNavigation from "../../components/StepNavigation";
+import { FileDropzone } from "../../components/FileDropzone";
+import { useSampleForm } from "../../context/SampleFormContext";
 
+/* ================= DROPDOWN OPTIONS ================= */
+const MARKER_GENES = ["16S rRNA","18S rRNA","ITS","COI","rbcL","H3"];
+const DNA_SOURCES = ["Tissue Sample","Isolated Colony","Environmental DNA (eDNA)","Whole Organism","Mixed Community"];
+const EXTRACTION_KITS = ["Qiagen DNeasy","Zymo Research","Promega","Invitrogen","Chelex Resin","Other"];
+const EXTRACTION_METHODS = ["Chelex 10%","Invitrogen"];
+const PCR_METHODS = ["HS Red Mix","Hot Start Green"];
+const PCR_PROTOCOLS = ["Standard PCR","Touchdown PCR","Nested PCR"];
+const SEQUENCING_METHODS = ["Sanger","Illumina","Oxford Nanopore"];
+const SEQUENCING_QUALITY = ["Excellent","Good","Moderate","Poor"];
+const BIOINFO_PIPELINES = ["QIIME2","DADA2","Mothur","Custom Pipeline"];
+const DNA_CONCENTRATION = ["<10 ng/µL","10–50 ng/µL","50–100 ng/µL",">100 ng/µL"];
+const ACCESSION_STATUS = ["Not Submitted","Submitted","Published"];
+
+/* ================= MAIN ================= */
 export default function Step4_Molecular() {
-  const { formData, updateSection } = useSampleFormContext();
+  const { formData, updateSection, normalizeImage } = useSampleForm();
+  const molecular = formData.molecular || {};
 
-  /* ================= SAFE DEFAULT ================= */
-  const molecular = {
-    gelImage: null,
-    rawSequenceFiles: [],
-    markerGene: "",
-    dnaSource: "",
-    extractionKit: "",
-    extractionMethod: "",
-    primerForward: "",
-    primerReverse: "",
-    pcrMethod: "",
-    pcrProtocol: "",
-    sequencingMethod: "",
-    sequencingQuality: "",
-    bioinformaticsPipeline: "",
-    accessionStatus: "",
-    accessionNumber: "",
-    dnaConcentration: "",
-    phylogeneticNotes: "",
-    ...formData.molecular
-  };
-
-  /* ================= COLLAPSE STATE ================= */
-  const [open, setOpen] = useState({
-    files: true,
-    metadata: true,
-    notes: true
-  });
-
-  /* ================= REFS ================= */
-  const gelRef = useRef(null);
-  const rawSeqRef = useRef(null);
-
-  /* ================= UI HELPERS ================= */
-  const Section = ({ title, sectionKey, children }) => (
-    <section className="bg-white border rounded-xl shadow-sm">
-      <button
-        type="button"
-        onClick={() =>
-          setOpen(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }))
-        }
-        className="w-full flex justify-between items-center px-6 py-4"
-      >
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <span className="text-sm text-gray-500">
-          {open[sectionKey] ? "−" : "+"}
-        </span>
-      </button>
-      {open[sectionKey] && (
-        <div className="px-6 pb-6 pt-2 space-y-4">{children}</div>
-      )}
-    </section>
-  );
-
-  const Label = ({ children }) => (
-    <label className="block text-sm text-gray-600 mb-1">{children}</label>
-  );
-
-  const Input = ({ value, onChange, placeholder }) => (
-    <input
-      type="text"
-      className="w-full p-2 border rounded-md text-base focus:ring"
-      value={value}
-      placeholder={placeholder}
-      onChange={onChange}
-    />
-  );
-
-  const Select = ({ value, onChange, placeholder, options }) => (
-    <select
-      className="w-full p-2 border rounded-md text-base focus:ring"
-      value={value}
-      onChange={onChange}
-    >
-      <option value="">{placeholder}</option>
-      {options.map(opt => (
-        <option key={opt} value={opt}>{opt}</option>
-      ))}
-    </select>
-  );
+  const [open, setOpen] = useState({ files: true, metadata: true, notes: true });
+  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const setValue = (field, value) => updateSection("molecular", { [field]: value });
 
   /* ================= FILE HANDLERS ================= */
-  const handleGelImage = (file) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      updateSection("molecular", { gelImage: reader.result });
-    };
-    reader.readAsDataURL(file);
+  const handleGelImage = async (files) => {
+    const normalized = files.map(normalizeImage);
+    setValue("gelImage", normalized);
   };
 
-  const handleRawSequence = (file) => {
-    const meta = {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      uploadedAt: new Date().toISOString()
-    };
-    updateSection("molecular", {
-      rawSequenceFiles: [...molecular.rawSequenceFiles, meta]
-    });
+  const handleRawFiles = async (files) => {
+    const normalized = files.map(normalizeImage);
+    setValue("rawSequenceFiles", normalized);
   };
 
-  /* ================= RENDER ================= */
   return (
-    <div className="container mx-auto max-w-5xl p-6 space-y-8">
-      <FormProgressBar step={4} steps={6} />
+    <div className="min-h-screen bg-gray-50 p-6 flex justify-center">
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-xl p-8 space-y-8">
+        <FormProgressBar step={4} steps={6} />
 
-        <div className="border-b pb-4">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Molecular
-          </h2>
-          <p className="text-sm text-gray-500">
-            Molecular Information
-          </p>
-        </div>
+        <header className="border-b pb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Molecular Analysis</h1>
+          <p className="text-sm text-gray-500">DNA extraction, amplification, sequencing, and analysis metadata</p>
+        </header>
 
-      {/* FILES */}
-      <Section title="Gel & Raw Sequence Files" sectionKey="files">
-        {/* GEL IMAGE */}
-        <div
-          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50"
-          onClick={() => gelRef.current.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.dataTransfer.files?.[0] &&
-              handleGelImage(e.dataTransfer.files[0]);
-          }}
-        >
-          <p className="text-sm text-gray-600">
-            Drag & Drop Gel Image Here
-          </p>
-          {molecular.gelImage && (
-            <img
-              src={molecular.gelImage}
-              alt="Gel"
-              className="mx-auto mt-4 max-h-48 rounded shadow"
-            />
-          )}
-          <input
-            ref={gelRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) =>
-              e.target.files?.[0] && handleGelImage(e.target.files[0])
-            }
-          />
-        </div>
-
-        {/* RAW SEQUENCE */}
-        <div
-          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50"
-          onClick={() => rawSeqRef.current.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.dataTransfer.files?.[0] &&
-              handleRawSequence(e.dataTransfer.files[0]);
-          }}
-        >
-          <p className="text-sm text-gray-600">
-            Drag & Drop RAW Sequence File Here
-          </p>
-          <input
-            ref={rawSeqRef}
-            type="file"
-            className="hidden"
-            onChange={(e) =>
-              e.target.files?.[0] && handleRawSequence(e.target.files[0])
-            }
-          />
-        </div>
-      </Section>
-
-      {/* METADATA */}
-      <Section title="Molecular Metadata" sectionKey="metadata">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <Label>Marker Gene / Target</Label>
-            <Select
-              value={molecular.markerGene}
-              onChange={(e) =>
-                updateSection("molecular", { markerGene: e.target.value })
-              }
-              placeholder="Select marker"
-              options={["16S rRNA","18S rRNA","ITS","COI","rbcL","H3"]}
-            />
-          </div>
-
-          <div>
-            <Label>DNA Source</Label>
-            <Select
-              value={molecular.dnaSource}
-              onChange={(e) =>
-                updateSection("molecular", { dnaSource: e.target.value })
-              }
-              placeholder="Select DNA source"
-              options={[
-                "Isolated colony",
-                "Environmental DNA",
-                "Tissue sample"
-              ]}
-            />
-          </div>
-
-          <div>
-            <Label>Extraction Kit Used</Label>
-            <Select
-              value={molecular.extractionKit}
-              onChange={(e) =>
-                updateSection("molecular", { extractionKit: e.target.value })
-              }
-              placeholder="Select kit"
-              options={["Qiagen","Zymo","Promega","Invitrogen","Other"]}
-            />
-          </div>
-
-          <div>
-            <Label>DNA Extraction Method</Label>
-            <Select
-              value={molecular.extractionMethod}
-              onChange={(e) =>
-                updateSection("molecular", { extractionMethod: e.target.value })
-              }
-              placeholder="Select method"
-              options={["Chelex 10%","Invitrogen"]}
-            />
-          </div>
-
-          <div>
-            <Label>Primer – Forward</Label>
-            <Input
-              value={molecular.primerForward}
-              onChange={(e) =>
-                updateSection("molecular", { primerForward: e.target.value })
-              }
-              placeholder="Forward primer"
-            />
-          </div>
-
-          <div>
-            <Label>Primer – Reverse</Label>
-            <Input
-              value={molecular.primerReverse}
-              onChange={(e) =>
-                updateSection("molecular", { primerReverse: e.target.value })
-              }
-              placeholder="Reverse primer"
-            />
-          </div>
-
-          <div>
-            <Label>PCR Method</Label>
-            <Select
-              value={molecular.pcrMethod}
-              onChange={(e) =>
-                updateSection("molecular", { pcrMethod: e.target.value })
-              }
-              placeholder="Select PCR method"
-              options={["HS Red Mix","Hot Start Green"]}
-            />
-          </div>
-
-          <div>
-            <Label>PCR Protocol Type</Label>
-            <Select
-              value={molecular.pcrProtocol}
-              onChange={(e) =>
-                updateSection("molecular", { pcrProtocol: e.target.value })
-              }
-              placeholder="Select protocol"
-              options={["Standard","Touchdown","Nested"]}
-            />
-          </div>
-
-          <div>
-            <Label>Sequencing Method</Label>
-            <Select
-              value={molecular.sequencingMethod}
-              onChange={(e) =>
-                updateSection("molecular", { sequencingMethod: e.target.value })
-              }
-              placeholder="Select method"
-              options={["Sanger","Illumina","Nanopore"]}
-            />
-          </div>
-
-          <div>
-            <Label>Sequencing Quality</Label>
-            <Select
-              value={molecular.sequencingQuality}
-              onChange={(e) =>
-                updateSection("molecular", { sequencingQuality: e.target.value })
-              }
-              placeholder="Select quality"
-              options={["Excellent","Good","Moderate","Poor"]}
-            />
-          </div>
-
-          <div>
-            <Label>Bioinformatics Pipeline</Label>
-            <Select
-              value={molecular.bioinformaticsPipeline}
-              onChange={(e) =>
-                updateSection("molecular", { bioinformaticsPipeline: e.target.value })
-              }
-              placeholder="Select pipeline"
-              options={["QIIME2","Mothur","DADA2","Custom"]}
-            />
-          </div>
-
-          <div>
-            <Label>DNA Concentration Range</Label>
-            <Select
-              value={molecular.dnaConcentration}
-              onChange={(e) =>
-                updateSection("molecular", { dnaConcentration: e.target.value })
-              }
-              placeholder="Select range"
-              options={[
-                "<10 ng/µL",
-                "10–50 ng/µL",
-                "50–100 ng/µL",
-                ">100 ng/µL"
-              ]}
-            />
-          </div>
-
-          <div>
-            <Label>Accession / Submission</Label>
-            <Select
-              value={molecular.accessionStatus}
-              onChange={(e) =>
-                updateSection("molecular", { accessionStatus: e.target.value })
-              }
-              placeholder="Select status"
-              options={["Not Submitted","Submitted","Published"]}
-            />
-          </div>
-
-          {molecular.accessionStatus === "Published" && (
+        {/* ================= FILE UPLOADS ================= */}
+        <Box title="Gel & RAW Sequence Files" open={open.files} toggle={() => toggle("files")}>
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <Label>Accession Number</Label>
-              <Input
-                value={molecular.accessionNumber}
-                onChange={(e) =>
-                  updateSection("molecular", { accessionNumber: e.target.value })
-                }
-                placeholder="e.g. GenBank ID"
+              <Label>Gel Image</Label>
+              <FileDropzone
+                accept="image/*"
+                multiple={false}
+                existing={molecular.gelImage ? [molecular.gelImage] : []}
+                onFiles={handleGelImage}
               />
             </div>
-          )}
-        </div>
-      </Section>
 
-      {/* NOTES */}
-      <Section title="Phylogenetic Description / Notes" sectionKey="notes">
-        <Label>Description / Notes</Label>
-        <textarea
-          className="w-full p-2 border rounded-md text-base"
-          rows={4}
-          value={molecular.phylogeneticNotes}
-          onChange={(e) =>
-            updateSection("molecular", { phylogeneticNotes: e.target.value })
-          }
-        />
-      </Section>
+            <div>
+              <Label>RAW Sequence Files</Label>
+              <FileDropzone
+                multiple
+                accept=".fastq,.fq,.ab1,.fasta,.fa,.txt"
+                existing={molecular.rawSequenceFiles || []}
+                onFiles={handleRawFiles}
+              />
+            </div>
+          </div>
+        </Box>
 
-      <StepNavigation />
+        {/* ================= METADATA ================= */}
+        <Box title="Molecular Metadata" open={open.metadata} toggle={() => toggle("metadata")}>
+          <Grid>
+            <Select label="Marker Gene / Target" value={molecular.markerGene || ""} onChange={(v) => setValue("markerGene", v)} options={MARKER_GENES} />
+            <Select label="DNA Source" value={molecular.dnaSource || ""} onChange={(v) => setValue("dnaSource", v)} options={DNA_SOURCES} />
+            <Select label="Extraction Kit Used" value={molecular.extractionKit || ""} onChange={(v) => setValue("extractionKit", v)} options={EXTRACTION_KITS} />
+            <Select label="DNA Extraction Method" value={molecular.extractionMethod || ""} onChange={(v) => setValue("extractionMethod", v)} options={EXTRACTION_METHODS} />
+            <Input label="Primer – Forward" value={molecular.primerForward || ""} onChange={(v) => setValue("primerForward", v)} />
+            <Input label="Primer – Reverse" value={molecular.primerReverse || ""} onChange={(v) => setValue("primerReverse", v)} />
+            <Select label="PCR Method" value={molecular.pcrMethod || ""} onChange={(v) => setValue("pcrMethod", v)} options={PCR_METHODS} />
+            <Select label="PCR Protocol Type" value={molecular.pcrProtocolType || ""} onChange={(v) => setValue("pcrProtocolType", v)} options={PCR_PROTOCOLS} />
+            <Select label="Sequencing Method" value={molecular.sequencingMethod || ""} onChange={(v) => setValue("sequencingMethod", v)} options={SEQUENCING_METHODS} />
+            <Select label="Sequencing Quality" value={molecular.sequencingQuality || ""} onChange={(v) => setValue("sequencingQuality", v)} options={SEQUENCING_QUALITY} />
+            <Select label="Bioinformatics Pipeline" value={molecular.bioinformaticsPipeline || ""} onChange={(v) => setValue("bioinformaticsPipeline", v)} options={BIOINFO_PIPELINES} />
+            <Select label="DNA Concentration Range" value={molecular.dnaConcentrationRange || ""} onChange={(v) => setValue("dnaConcentrationRange", v)} options={DNA_CONCENTRATION} />
+            <Select label="Accession / Submission Status" value={molecular.accessionStatus || ""} onChange={(v) => setValue("accessionStatus", v)} options={ACCESSION_STATUS} />
+            {molecular.accessionStatus === "Published" && <Input label="Accession Number" value={molecular.accessionNumber || ""} onChange={(v) => setValue("accessionNumber", v)} />}
+          </Grid>
+        </Box>
+
+        {/* ================= NOTES ================= */}
+        <Box title="Phylogenetic Description / Notes" open={open.notes} toggle={() => toggle("notes")}>
+          <Label>Description / Notes</Label>
+          <textarea
+            rows={4}
+            value={molecular.phylogeneticNotes || ""}
+            onChange={(e) => setValue("phylogeneticNotes", e.target.value)}
+            className="w-full rounded-lg border px-3 py-2 text-base"
+          />
+        </Box>
+
+        <StepNavigation />
+      </div>
+    </div>
+  );
+}
+
+/* ================= REUSABLE UI ================= */
+function Box({ title, open, toggle, children }) {
+  return (
+    <section className="border rounded-xl shadow-sm">
+      <button type="button" onClick={toggle} className="w-full flex justify-between items-center px-6 py-4 bg-gray-100 rounded-t-xl">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <span className="text-sm">{open ? "−" : "+"}</span>
+      </button>
+      {open && <div className="p-6 space-y-4">{children}</div>}
+    </section>
+  );
+}
+
+function Grid({ children }) {
+  return <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{children}</div>;
+}
+
+function Label({ children }) {
+  return <label className="block text-sm mb-1">{children}</label>;
+}
+
+function Input({ label, value, onChange }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base" />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base">
+        <option value="">Select {label}</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   );
 }

@@ -20,7 +20,9 @@ import SampleDetails from "./pages/SampleDetails";
 import AddSampleWizard from "./pages/addsample/AddSampleWizard";
 import Step1_Metadata from "./pages/addsample/Step1_Metadata";
 import Step2_Morphology from "./pages/addsample/Step2_Morphology";
-import Step3_Microbiology from "./pages/addsample/Step3_Microbiology";
+import Step3A_PrimaryIsolated from "./pages/addsample/Step3A_PrimaryIsolated";
+import Step3B_IsolatedMorphology from "./pages/addsample/Step3B_IsolatedMorphology";
+import Step3C_Misc from "./pages/addsample/Step3C_Misc";
 import Step4_Molecular from "./pages/addsample/Step4_Molecular";
 import Step5_Publication from "./pages/addsample/Step5_Publication";
 import Step6_ReviewSubmit from "./pages/addsample/Step6_ReviewSubmit";
@@ -64,12 +66,18 @@ export default function App() {
             element={<Dashboard samples={samples} />}
           />
 
-          {/* ================= ADD / EDIT SAMPLE WIZARD ================= */}
+          {/* ================= ADD SAMPLE WIZARD ================= */}
           <Route path="/add" element={<AddSampleWizard />}>
             <Route index element={<Navigate to="step1" replace />} />
+
             <Route path="step1" element={<Step1_Metadata />} />
             <Route path="step2" element={<Step2_Morphology />} />
-            <Route path="step3" element={<Step3_Microbiology />} />
+
+            {/* ✅ SPLIT MICROBIOLOGY */}
+            <Route path="step3a" element={<Step3A_PrimaryIsolated />} />
+            <Route path="step3b" element={<Step3B_IsolatedMorphology />} />
+            <Route path="step3c" element={<Step3C_Misc />} />
+
             <Route path="step4" element={<Step4_Molecular />} />
             <Route path="step5" element={<Step5_Publication />} />
             <Route path="review" element={<Step6_ReviewSubmit />} />
@@ -87,18 +95,15 @@ export default function App() {
             element={<SearchSample samples={samples} />}
           />
 
-          {/* Edit Sample (selector page) */}
+          {/* Edit Sample */}
           <Route
             path="/editsample"
             element={
-              <EditSample
-                samples={samples}
-                setSamples={setSamples}
-              />
+              <EditSample samples={samples} setSamples={setSamples} />
             }
           />
 
-          {/* Details */}
+          {/* Sample Details */}
           <Route
             path="/sampledetails/:id"
             element={<SampleDetails samples={samples} />}

@@ -42,65 +42,84 @@ export function SampleFormProvider({ children }) {
     },
 
     microbiology: {
-      primaryIsolatedData: {
+      primaryIsolated: {
         isolatedId: "",
         shelf: "",
-        position: "",
-        storageTemperature: "",
+        positionInBox: "",
+        storageTemperature: "-20°C",
         agarMedia: "",
-        solvent: "",
+        solvent: "Aquades",
         incubationTemperature: "",
         incubationTime: "",
         oxygenRequirement: "",
         notes: ""
       },
 
-      images: {
-        isolated: null,
-        microscopic: null
+      isolatedMorphology: {
+        isolatedImage: null,
+        macroscopic: {
+          shape: "",
+          arrangement: ""
+        },
+        colonyDescription: {
+          shape: "",
+          margin: "",
+          elevation: "",
+          color: "",
+          texture: "",
+          motility: ""
+        },
+        microscopicImage: null,
+        microscopic: {
+          shape: "",
+          arrangement: "",
+          gramReaction: ""
+        }
       },
 
-      macroscopicMorphology: {
-        shape: "",
-        arrangement: ""
-      },
+      microbiologyTests: {
+        antibacterialAssay: {
+          pathogen: "",
+          method: "",
+          antimalarialAssay: "",
+          molecularId: "No"
+        },
 
-      colonyDescription: {
-        shape: "",
-        margin: "",
-        elevation: "",
-        color: "",
-        texture: "",
-        motility: ""
-      },
+        biochemicalTests: {
+          catalase: false,
+          oxidase: false,
+          urease: false,
+          gelatinHydrolysis: false,
+          sulfideProduction: false,
+          nitrateReduction: false,
+          fermentation: false,
+          indole: false,
+          citrate: false
+        },
 
-      microscopicMorphology: {
-        shape: "",
-        arrangement: "",
-        gramReaction: ""
-      },
+        enzymaticTests: {
+          amylase: false,
+          protease: false,
+          lipase: false,
+          cellulase: false,
+          alkaneHydroxylase: false,
+          manganesePeroxidase: false,
+          laccase: false
+        },
 
-      antibacterialAssay: {
-        pathogen: "",
-        method: "",
-        antimalarial: "",
-        molecularId: ""
-      },
+        testNotes: "",
+        rawSequenceFile: null,
 
-      biochemicalTests: [],
-      enzymaticTests: [],
-      testNotes: "",
-
-      molecularIdentification: {
-        identified: "",
-        speciesName: "",
-        pcrPlatform: "",
-        pcrProtocolType: "",
-        sequencingMethod: "",
-        bioinformaticsPipeline: "",
-        accessionStatus: "",
-        accessionNumber: "",
-        rawSequenceFiles: []
+        hasMolecularID: false,
+        molecularIdentification: {
+          speciesName: "",
+          pcrPlatform: "",
+          pcrProtocolType: "",
+          sequencingMethod: "",
+          bioinformaticsPipeline: "",
+          accessionStatus: "Unpublished",
+          accessionNumber: ""
+        }
       }
     },
 
@@ -129,7 +148,7 @@ export function SampleFormProvider({ children }) {
   };
 
   /* ================= MODE ================= */
-  const [mode, setMode] = useState("add"); // add | edit
+  const [mode, setMode] = useState("add");
   const [editingSampleId, setEditingSampleId] = useState(null);
 
   /* ================= FORM STATE ================= */
@@ -142,14 +161,16 @@ export function SampleFormProvider({ children }) {
     }
   });
 
-  /* ================= AUTOSAVE ================= */
+  /* ================= AUTOSAVE (WITH IMAGES) ================= */
   useEffect(() => {
     try {
       localStorage.setItem(
         "merobase_addsample_draft",
         JSON.stringify(formData)
       );
-    } catch {}
+    } catch (err) {
+      console.warn("Autosave skipped (storage limit)", err);
+    }
   }, [formData]);
 
   /* ================= HELPERS ================= */
@@ -173,18 +194,18 @@ export function SampleFormProvider({ children }) {
   /* ================= EDIT MODE ================= */
   const loadSampleForEdit = (sample) => {
     if (!sample?.metadata?.sampleId) {
-      console.error("Invalid sample passed to edit");
+      console.error("Invalid sample for edit");
       return;
     }
 
     setMode("edit");
     setEditingSampleId(sample.metadata.sampleId);
     setFormData(sample);
+  };
 
-    localStorage.setItem(
-      "merobase_addsample_draft",
-      JSON.stringify(sample)
-    );
+  const exitEditMode = () => {
+    setMode("add");
+    setEditingSampleId(null);
   };
 
   /* ================= CLEAR ================= */
@@ -193,12 +214,7 @@ export function SampleFormProvider({ children }) {
     setFormData(initial);
   };
 
-  const exitEditMode = () => {
-    setMode("add");
-    setEditingSampleId(null);
-  };
-
-  /* ================= SUBMIT ================= */
+  /* ================= SUBMIT (IMAGES KEPT) ================= */
   const submitSampleToLocalStorage = () => {
     let samples = [];
 
@@ -210,17 +226,12 @@ export function SampleFormProvider({ children }) {
     }
 
     if (mode === "edit") {
-      if (!editingSampleId) {
-        console.error("Edit mode active but no editingSampleId");
-        return;
-      }
-
       const index = samples.findIndex(
         s => s.metadata?.sampleId === editingSampleId
       );
 
       if (index === -1) {
-        console.error("Edit failed: sample not found");
+        alert("Edit failed: sample not found");
         return;
       }
 
@@ -232,32 +243,22 @@ export function SampleFormProvider({ children }) {
         },
         lastEdited: new Date().toISOString()
       };
-
-      localStorage.setItem(
-        "merobase_samples",
-        JSON.stringify(samples)
-      );
-
-      clearDraftOnly();
-      return;
+    } else {
+      samples.unshift({
+        ...formData,
+        metadata: {
+          ...formData.metadata,
+          sampleId:
+            formData.metadata.sampleId ||
+            `SAMPLE-${Date.now()}`
+        },
+        createdAt: new Date().toISOString()
+      });
     }
-
-    /* ---------- ADD MODE ---------- */
-    const newSampleId =
-      formData.metadata.sampleId || `SAMPLE-${Date.now()}`;
-
-    const newSample = {
-      ...formData,
-      metadata: {
-        ...formData.metadata,
-        sampleId: newSampleId
-      },
-      createdAt: new Date().toISOString()
-    };
 
     localStorage.setItem(
       "merobase_samples",
-      JSON.stringify([newSample, ...samples])
+      JSON.stringify(samples)
     );
 
     clearDraftOnly();

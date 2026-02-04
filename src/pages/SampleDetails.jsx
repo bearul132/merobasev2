@@ -1,3 +1,4 @@
+// src/pages/SampleDetails.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -5,10 +6,18 @@ import {
   PlusCircle,
   Edit3,
   Search,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 
-/* ================= COMPONENT ================= */
+/* ================= IMPORT TABS ================= */
+import MetadataTab from "./SampleDetails/MetadataTab";
+import MorphologyTab from "./SampleDetails/MorphologyTab";
+import PrimaryIsolatedTab from "./SampleDetails/PrimaryIsolatedTab";
+import IsolatedMorphologyTab from "./SampleDetails/IsolatedMorphologyTab";
+import MiscTestsTab from "./SampleDetails/MiscTestsTab";
+import MolecularTab from "./SampleDetails/MolecularTab";
+import PublicationTab from "./SampleDetails/PublicationTab";
 
 export default function SampleDetails() {
   const navigate = useNavigate();
@@ -18,25 +27,22 @@ export default function SampleDetails() {
   const [sample, setSample] = useState(null);
   const [open, setOpen] = useState({
     metadata: true,
-    morphology: true,
-    microbiology: true,
-    molecular: true
+    morphology: false,
+    primary: false,
+    isolated: false,
+    misc: false,
+    molecular: false,
+    publication: false,
   });
 
-  const toggle = (key) =>
-    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
   /* ================= LOAD SAMPLE ================= */
-
   useEffect(() => {
     try {
       const stored =
         JSON.parse(localStorage.getItem("merobase_samples")) || [];
-
-      const found = stored.find(
-        (s) => s?.metadata?.sampleId === id
-      );
-
+      const found = stored.find((s) => s?.metadata?.sampleId === id);
       setSample(found || null);
     } catch {
       setSample(null);
@@ -45,231 +51,150 @@ export default function SampleDetails() {
 
   if (!sample) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-600">
+      <div className="flex items-center justify-center min-h-screen text-gray-500">
         Sample not found.
       </div>
     );
   }
 
-  const m = sample.metadata;
-
-  /* ================= UI ================= */
+  /* ================= SIDEBAR BUTTON ================= */
+  const SidebarBtn = ({ icon, label, onClick }) => (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-3 rounded hover:bg-gray-100"
+    >
+      {icon}
+      {sidebarOpen && <span>{label}</span>}
+    </button>
+  );
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
+    <div className="flex min-h-screen bg-gray-50">
       {/* ================= SIDEBAR ================= */}
       <aside
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
-        className={`bg-white shadow-xl transition-all duration-300
-        ${sidebarOpen ? "w-56" : "w-16"} flex flex-col`}
+        className={`bg-white shadow-lg transition-all duration-300 ${
+          sidebarOpen ? "w-60" : "w-16"
+        }`}
       >
         <div className="flex items-center gap-2 p-4">
           <ChevronRight
-            className={`transition-transform ${
-              sidebarOpen ? "rotate-90" : ""
-            }`}
+            className={`transition-transform ${sidebarOpen ? "rotate-90" : ""}`}
           />
-          {sidebarOpen && (
-            <h1 className="text-lg font-bold text-gray-700">
-              MEROBase
-            </h1>
-          )}
+          {sidebarOpen && <h1 className="font-bold">MEROBase</h1>}
         </div>
 
-        <nav className="flex flex-col mt-4 gap-1">
+        <nav className="flex flex-col gap-1 px-2">
           <SidebarBtn
-            icon={<LayoutDashboard className="text-blue-600" />}
+            icon={<LayoutDashboard />}
             label="Dashboard"
-            open={sidebarOpen}
             onClick={() => navigate("/dashboard")}
           />
           <SidebarBtn
-            icon={<PlusCircle className="text-green-600" />}
+            icon={<PlusCircle />}
             label="Add Sample"
-            open={sidebarOpen}
             onClick={() => navigate("/addsample")}
           />
           <SidebarBtn
-            icon={<Edit3 className="text-yellow-600" />}
+            icon={<Edit3 />}
             label="Edit Sample"
-            open={sidebarOpen}
-            onClick={() => navigate("/editsample")}
+            onClick={() =>
+              navigate("/addsample", { state: { mode: "edit", sample } })
+            }
           />
           <SidebarBtn
-            icon={<Search className="text-purple-600" />}
-            label="Search Sample"
-            open={sidebarOpen}
+            icon={<Search />}
+            label="Search"
             onClick={() => navigate("/searchsample")}
           />
         </nav>
       </aside>
 
       {/* ================= MAIN ================= */}
-      <main className="flex-1 p-8 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Sample Details
-            </h1>
-            <p className="text-sm text-gray-500">
-              {m.sampleId}
-            </p>
-          </div>
+      <main className="flex-1 max-w-6xl mx-auto p-8 space-y-6">
+        <header className="mb-4">
+          <h1 className="text-2xl font-bold">Sample Details</h1>
+          <p className="text-sm text-gray-500">{sample.metadata?.sampleId}</p>
+        </header>
 
-          <button
-            onClick={() =>
-              navigate("/addsample", {
-                state: { mode: "edit", sample }
-              })
-            }
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
-          >
-            Edit Sample
-          </button>
-        </div>
-
-        {/* ================= METADATA ================= */}
+        {/* ================= COLLAPSIBLE SECTIONS ================= */}
         <Section
-          title="Basic Information"
+          title="Metadata & Collection"
           open={open.metadata}
           onToggle={() => toggle("metadata")}
         >
-          <InfoGrid>
-            <Info label="Sample Name" value={m.sampleName} />
-            <Info label="Sample Type" value={m.sampleType} />
-            <Info label="Species" value={m.species} />
-            <Info label="Genus" value={m.genus} />
-            <Info label="Family" value={m.family} />
-            <Info label="Kingdom" value={m.kingdom} />
-            <Info label="Project Type" value={m.projectType} />
-            <Info
-              label="Collection Date"
-              value={
-                m.collectionDate
-                  ? new Date(m.collectionDate).toLocaleDateString()
-                  : "-"
-              }
-            />
-            <Info label="Collector" value={m.collectorName} />
-            <Info label="Storage Location" value={m.storageLocation} />
-          </InfoGrid>
+          <MetadataTab metadata={sample.metadata} />
         </Section>
 
-        {/* ================= MORPHOLOGY ================= */}
         <Section
           title="Morphology"
           open={open.morphology}
           onToggle={() => toggle("morphology")}
         >
-          <ImageGrid images={sample.morphology?.semPhotos} />
+          <MorphologyTab morphology={sample.morphology} />
         </Section>
 
-        {/* ================= MICROBIOLOGY ================= */}
         <Section
-          title="Microbiology"
-          open={open.microbiology}
-          onToggle={() => toggle("microbiology")}
+          title="Primary Isolated"
+          open={open.primary}
+          onToggle={() => toggle("primary")}
         >
-          <ImageGrid images={sample.microbiology?.petriDishPhotos} />
+          <PrimaryIsolatedTab primary={sample.microbiology.primaryIsolated} />
         </Section>
 
-        {/* ================= MOLECULAR ================= */}
         <Section
-          title="Molecular"
+          title="Isolated Morphology"
+          open={open.isolated}
+          onToggle={() => toggle("isolated")}
+        >
+          <IsolatedMorphologyTab
+            isolated={sample.microbiology.isolatedMorphology}
+          />
+        </Section>
+
+        <Section
+          title="Miscellaneous Microbiology Tests"
+          open={open.misc}
+          onToggle={() => toggle("misc")}
+        >
+          <MiscTestsTab misc={sample.microbiology.microbiologyTests} />
+        </Section>
+
+        <Section
+          title="Molecular Biology"
           open={open.molecular}
           onToggle={() => toggle("molecular")}
         >
-          <InfoGrid>
-            <Info
-              label="Marker Gene"
-              value={sample.molecular?.markerGene}
-            />
-            <Info
-              label="Sequencing Method"
-              value={sample.molecular?.sequencingMethod}
-            />
-            <Info
-              label="Accession Number"
-              value={sample.molecular?.accessionNumber}
-            />
-          </InfoGrid>
+          <MolecularTab molecular={sample.molecular} />
         </Section>
 
-        <div className="mt-10 text-center">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            Back
-          </button>
-        </div>
+        <Section
+          title="Publication / Links"
+          open={open.publication}
+          onToggle={() => toggle("publication")}
+        >
+          <PublicationTab publication={sample.publication} />
+        </Section>
       </main>
     </div>
   );
 }
 
-/* ================= SUB COMPONENTS ================= */
-
-function SidebarBtn({ icon, label, open, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition"
-    >
-      {icon}
-      {open && <span className="font-medium">{label}</span>}
-    </button>
-  );
-}
-
+/* ================= COLLAPSIBLE SECTION COMPONENT ================= */
 function Section({ title, open, onToggle, children }) {
   return (
     <div className="bg-white rounded-xl shadow p-6 mb-6">
       <button
         onClick={onToggle}
-        className="w-full text-left text-lg font-semibold mb-4"
+        className="flex items-center gap-2 mb-4 focus:outline-none"
       >
-        {title} {open ? "▲" : "▼"}
+        <ChevronDown
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        />
+        <h2 className="text-lg font-semibold">{title}</h2>
       </button>
       {open && children}
-    </div>
-  );
-}
-
-function InfoGrid({ children }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {children}
-    </div>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <p className="text-sm text-gray-700">
-      <span className="font-semibold">{label}:</span>{" "}
-      {value || "-"}
-    </p>
-  );
-}
-
-function ImageGrid({ images = [] }) {
-  if (!images || images.length === 0) {
-    return <p className="text-gray-500 italic">No images available.</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {images.map((src, i) => (
-        <img
-          key={i}
-          src={src}
-          alt=""
-          className="w-full h-64 object-cover rounded-lg shadow"
-        />
-      ))}
     </div>
   );
 }

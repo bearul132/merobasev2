@@ -9,9 +9,12 @@ import {
 import "leaflet/dist/leaflet.css";
 
 import FormProgressBar from "../../components/FormProgressBar";
+import FileDropzone from "../../components/FileDropzone";
 import { useSampleForm } from "../../context/SampleFormContext";
 
 /* ================= DROPDOWN DATA ================= */
+
+const SAMPLE_TYPES = ["Biological", "Non-Biological"];
 
 const DIVE_SITES = [
   "USAT Liberty – Tulamben",
@@ -62,45 +65,24 @@ const STORAGE_LOCATIONS = [
 export default function Step1_Metadata() {
   const navigate = useNavigate();
   const { formData, updateSection } = useSampleForm();
-  const metadata = formData.metadata;
+  const metadata = formData.metadata || {};
 
-  /* ================= COLLAPSE ================= */
+  /* ================= COLLAPSE STATE ================= */
   const [open, setOpen] = useState({
     photo: true,
     general: true,
     bio: true,
-    molecular: false,
     map: true,
   });
 
-  const toggle = (k) => setOpen((p) => ({ ...p, [k]: !p[k] }));
+  const toggle = (key) =>
+    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  /* ================= HELPERS ================= */
   const setValue = (field, value) =>
     updateSection("metadata", { [field]: value });
 
-  const handleImage = (field, file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () =>
-      setValue(field, {
-        name: file.name,
-        data: reader.result,
-        preview: reader.result,
-      });
-    reader.readAsDataURL(file);
-  };
-
-  const handleFile = (field, file) => {
-    if (!file) return;
-    setValue(field, {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
-  };
-
   /* ================= MAP ================= */
+
   function LocationMarker() {
     const [pos, setPos] = useState(
       metadata.latitude && metadata.longitude
@@ -126,14 +108,15 @@ export default function Step1_Metadata() {
   }
 
   /* ================= UI ================= */
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex justify-center">
+    <div className="min-h-screen bg-gray-50 p-6 flex justify-center font-sans">
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-xl p-8 space-y-8">
         <FormProgressBar step={1} steps={6} />
 
-        {/* ================= TITLE ================= */}
+        {/* ================= PAGE TITLE ================= */}
         <header className="border-b pb-4">
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold">
             Base Sample Metadata
           </h1>
           <p className="text-sm text-gray-500">
@@ -142,33 +125,32 @@ export default function Step1_Metadata() {
         </header>
 
         {/* ================= SAMPLE PHOTO ================= */}
-        <Box
-          title="Sample Photo"
-          open={open.photo}
-          toggle={() => toggle("photo")}
-        >
-          <Dropzone
-            label="Drag & drop or click to upload sample photo"
-            preview={metadata.samplePhoto?.preview}
-            onFile={(f) => handleImage("samplePhoto", f)}
+        <Box title="Sample Photo" open={open.photo} toggle={() => toggle("photo")}>
+          <FileDropzone
+            multiple={false}
+            accept="image/*"
+            demoOnly
+            existing={metadata.samplePhoto}
+            onFiles={(file) =>
+              updateSection("metadata", { samplePhoto: file })
+            }
           />
+          <p className="text-sm text-gray-400 mt-2">
+            Drag & drop or click to upload sample photo (demo only)
+          </p>
         </Box>
 
-        {/* ================= GENERAL ================= */}
-        <Box
-          title="General Sample Information"
-          open={open.general}
-          toggle={() => toggle("general")}
-        >
+        {/* ================= GENERAL INFO ================= */}
+        <Box title="General Sample Information" open={open.general} toggle={() => toggle("general")}>
           <Grid>
-            <Select label="Sample Type" value={metadata.sampleType}
+            <Select label="Sample Type" value={metadata.sampleType || ""}
               onChange={(v) => setValue("sampleType", v)}
-              options={["Biological", "Non-Biological"]} />
+              options={SAMPLE_TYPES} />
 
-            <Input label="Sample Name" value={metadata.sampleName}
+            <Input label="Sample Name" value={metadata.sampleName || ""}
               onChange={(v) => setValue("sampleName", v)} />
 
-            <Input label="Sample Number" value={metadata.sampleNumber}
+            <Input label="Sample Number" value={metadata.sampleNumber || ""}
               onChange={(v) => setValue("sampleNumber", v)} />
 
             <Input label="Sample Length (cm)" type="number"
@@ -191,41 +173,37 @@ export default function Step1_Metadata() {
               onChange={(v) => setValue("substrate", v)}
               options={SUBSTRATES} />
 
-            <Select label="Project Type" value={metadata.projectType}
+            <Select label="Project Type" value={metadata.projectType || ""}
               onChange={(v) => setValue("projectType", v)}
               options={["A", "B"]} />
 
-            <Input label="Project Number" value={metadata.projectNumber}
+            <Input label="Project Number" value={metadata.projectNumber || ""}
               onChange={(v) => setValue("projectNumber", v)} />
 
             <Input label="Date Acquired" type="date"
               value={metadata.dateAcquired || ""}
               onChange={(v) => setValue("dateAcquired", v)} />
 
-            <Input label="Collector Name" value={metadata.collectorName}
+            <Input label="Collector Name" value={metadata.collectorName || ""}
               onChange={(v) => setValue("collectorName", v)} />
           </Grid>
         </Box>
 
         {/* ================= BIO / NON BIO ================= */}
-        <Box
-          title="Biological Classification & Storage"
-          open={open.bio}
-          toggle={() => toggle("bio")}
-        >
+        <Box title="Classification & Storage" open={open.bio} toggle={() => toggle("bio")}>
           {metadata.sampleType === "Biological" ? (
             <Grid>
               <Select label="Kingdom" value={metadata.kingdom || ""}
                 onChange={(v) => setValue("kingdom", v)}
                 options={KINGDOMS} />
 
-              <Input label="Genus" value={metadata.genus}
+              <Input label="Genus" value={metadata.genus || ""}
                 onChange={(v) => setValue("genus", v)} />
 
-              <Input label="Family" value={metadata.family}
+              <Input label="Family" value={metadata.family || ""}
                 onChange={(v) => setValue("family", v)} />
 
-              <Input label="Species" value={metadata.species}
+              <Input label="Species" value={metadata.species || ""}
                 onChange={(v) => setValue("species", v)} />
 
               <Select label="Storage Location" full
@@ -240,14 +218,10 @@ export default function Step1_Metadata() {
               options={STORAGE_LOCATIONS} />
           )}
         </Box>
-        
+
         {/* ================= MAP ================= */}
-        <Box
-          title="Map Location Picker"
-          open={open.map}
-          toggle={() => toggle("map")}
-        >
-          <div className="h-64 rounded-xl overflow-hidden shadow mb-4">
+        <Box title="Map Location Picker" open={open.map} toggle={() => toggle("map")}>
+          <div className="h-64 rounded-xl overflow-hidden mb-4">
             <MapContainer
               center={[-8.34, 115.54]}
               zoom={12}
@@ -286,12 +260,13 @@ export default function Step1_Metadata() {
   );
 }
 
-/* ================= REUSABLE UI ================= */
+/* ================= UI HELPERS ================= */
 
 function Box({ title, open, toggle, children }) {
   return (
-    <section className="border rounded-xl shadow-sm">
+    <section className="border rounded-xl">
       <button
+        type="button"
         onClick={toggle}
         className="w-full flex justify-between items-center px-6 py-4 bg-gray-100 rounded-t-xl"
       >
@@ -339,43 +314,6 @@ function Select({ label, value, onChange, options, full }) {
           <option key={o} value={o}>{o}</option>
         ))}
       </select>
-    </div>
-  );
-}
-
-function Dropzone({ label, preview, onFile }) {
-  return (
-    <div
-      className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-blue-400"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        onFile(e.dataTransfer.files[0]);
-      }}
-    >
-      <input type="file" hidden />
-      {!preview ? (
-        <p className="text-sm text-gray-400">{label}</p>
-      ) : (
-        <img src={preview} className="mx-auto h-48 object-cover rounded-lg" />
-      )}
-    </div>
-  );
-}
-
-function FileDrop({ label, file, onFile }) {
-  return (
-    <div
-      className="border-2 border-dashed rounded-xl p-6 text-center"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        onFile(e.dataTransfer.files[0]);
-      }}
-    >
-      <p className="text-sm text-gray-500">
-        {file ? file.name : label}
-      </p>
     </div>
   );
 }
