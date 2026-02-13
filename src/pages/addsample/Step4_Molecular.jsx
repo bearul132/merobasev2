@@ -7,35 +7,123 @@ import { useSampleForm } from "../../context/SampleFormContext";
 
 /* ================= DROPDOWN OPTIONS ================= */
 const MARKER_GENES = ["16S rRNA","18S rRNA","ITS","COI","rbcL","H3"];
-const DNA_SOURCES = ["Tissue Sample","Isolated Colony","Environmental DNA (eDNA)","Whole Organism","Mixed Community"];
-const EXTRACTION_KITS = ["Qiagen DNeasy","Zymo Research","Promega","Invitrogen","Chelex Resin","Other"];
-const EXTRACTION_METHODS = ["Chelex 10%","Invitrogen"];
+
+const DNA_SOURCES = [
+  "Bacteria Culture",
+  "Paper Filter",
+  "Animal Tissue"
+];
+
+const EXTRACTION_KITS = [
+  "PureLink® Genomic DNA Kit (K1820-01, K1820-02, K1821-04)",
+  "ZymoBIOMICS Quick-DNA Miniprep Plus Kit",
+  "ZymoBIOMICS DNA Miniprep Kit (Lysis Tubes)"
+];
+
+const EXTRACTION_METHODS = [
+  "Extraction Kit",
+  "Chelex 10%"
+];
+
 const PCR_METHODS = ["HS Red Mix","Hot Start Green"];
-const PCR_PROTOCOLS = ["Standard PCR","Touchdown PCR","Nested PCR"];
 const SEQUENCING_METHODS = ["Sanger","Illumina","Oxford Nanopore"];
 const SEQUENCING_QUALITY = ["Excellent","Good","Moderate","Poor"];
 const BIOINFO_PIPELINES = ["QIIME2","DADA2","Mothur","Custom Pipeline"];
 const DNA_CONCENTRATION = ["<10 ng/µL","10–50 ng/µL","50–100 ng/µL",">100 ng/µL"];
 const ACCESSION_STATUS = ["Not Submitted","Submitted","Published"];
 
+const PRIMER_FORWARD_OPTIONS = [
+  "Primer 27F - BASA, 258 µl",
+  "Primer LCO - BASA, 230 µl",
+  "Primer FishBCL - BASA, 352 µl",
+  "Primer jg-LCO, 202 µl",
+  "Primer 28S Rdna C2_F, 300 µl",
+  "Primer dgLCO1490_F, 300 µl",
+  "Primer CO1porF1",
+  "Primer C1J2165_F",
+  "Primer COX1-R1_F",
+  "Primer 16Sar-L - BASA",
+  "Primer H3F - BASA",
+  "Primer LCO1490"
+];
+
+const PRIMER_REVERSE_OPTIONS = [
+  "Primer 1492R - BASA, 338 µl",
+  "Primer HCO - BASA, 327 µl",
+  "Primer FishBCH - BASA, 408 µl",
+  "Primer jg-HCO, 264 µl",
+  "Primer 28S Rdna D2_R, 300 µl",
+  "Primer dgHCO2198_R, 290 µl",
+  "Primer CO1porR1",
+  "Primer C1Npor2760_R",
+  "Primer COX1-D2_R",
+  "Primer 16s-xH - BASA",
+  "Primer H3R - BASA",
+  "Primer 16Sbr-H"
+];
+
 /* ================= MAIN ================= */
 export default function Step4_Molecular() {
   const { formData, updateSection, normalizeImage } = useSampleForm();
-  const molecular = formData.molecular || {};
 
-  const [open, setOpen] = useState({ files: true, metadata: true, notes: true });
+  const molecular = {
+    markers: [],
+    ...formData.molecular
+  };
+
+  if (!molecular.markers || molecular.markers.length === 0) {
+    molecular.markers = [
+      {
+        markerGene: "",
+        primerForward: "",
+        primerReverse: "",
+        pcrProtocolType: "",
+        accessionStatus: "",
+        accessionNumber: ""
+      }
+    ];
+  }
+
+  const [open, setOpen] = useState({ files: true, metadata: true, markers: true });
   const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   const setValue = (field, value) => updateSection("molecular", { [field]: value });
 
-  /* ================= FILE HANDLERS ================= */
-  const handleGelImage = async (files) => {
+  /* ===== File Handlers ===== */
+  const handleGelImage = (files) => {
     const normalized = files.map(normalizeImage);
     setValue("gelImage", normalized);
   };
 
-  const handleRawFiles = async (files) => {
+  const handleRawFiles = (files) => {
     const normalized = files.map(normalizeImage);
     setValue("rawSequenceFiles", normalized);
+  };
+
+  /* ===== Marker Handlers ===== */
+  const updateMarker = (index, field, value) => {
+    const updated = [...molecular.markers];
+    updated[index][field] = value;
+    updateSection("molecular", { markers: updated });
+  };
+
+  const addMarker = () => {
+    const updated = [
+      ...molecular.markers,
+      {
+        markerGene: "",
+        primerForward: "",
+        primerReverse: "",
+        pcrProtocolType: "",
+        accessionStatus: "",
+        accessionNumber: ""
+      }
+    ];
+    updateSection("molecular", { markers: updated });
+  };
+
+  const removeMarker = (index) => {
+    const updated = molecular.markers.filter((_, i) => i !== index);
+    updateSection("molecular", { markers: updated });
   };
 
   return (
@@ -45,7 +133,9 @@ export default function Step4_Molecular() {
 
         <header className="border-b pb-4">
           <h1 className="text-2xl font-bold text-gray-800">Molecular Analysis</h1>
-          <p className="text-sm text-gray-500">DNA extraction, amplification, sequencing, and analysis metadata</p>
+          <p className="text-sm text-gray-500">
+            DNA extraction, amplification, sequencing, and analysis metadata
+          </p>
         </header>
 
         {/* ================= FILE UPLOADS ================= */}
@@ -56,7 +146,7 @@ export default function Step4_Molecular() {
               <FileDropzone
                 accept="image/*"
                 multiple={false}
-                existing={molecular.gelImage ? [molecular.gelImage] : []}
+                existing={molecular.gelImage || []}
                 onFiles={handleGelImage}
               />
             </div>
@@ -73,35 +163,73 @@ export default function Step4_Molecular() {
           </div>
         </Box>
 
-        {/* ================= METADATA ================= */}
-        <Box title="Molecular Metadata" open={open.metadata} toggle={() => toggle("metadata")}>
+        {/* ================= GENERAL METADATA ================= */}
+        <Box title="General Molecular Metadata" open={open.metadata} toggle={() => toggle("metadata")}>
           <Grid>
-            <Select label="Marker Gene / Target" value={molecular.markerGene || ""} onChange={(v) => setValue("markerGene", v)} options={MARKER_GENES} />
             <Select label="DNA Source" value={molecular.dnaSource || ""} onChange={(v) => setValue("dnaSource", v)} options={DNA_SOURCES} />
-            <Select label="Extraction Kit Used" value={molecular.extractionKit || ""} onChange={(v) => setValue("extractionKit", v)} options={EXTRACTION_KITS} />
             <Select label="DNA Extraction Method" value={molecular.extractionMethod || ""} onChange={(v) => setValue("extractionMethod", v)} options={EXTRACTION_METHODS} />
-            <Input label="Primer – Forward" value={molecular.primerForward || ""} onChange={(v) => setValue("primerForward", v)} />
-            <Input label="Primer – Reverse" value={molecular.primerReverse || ""} onChange={(v) => setValue("primerReverse", v)} />
+            <Select label="Extraction Kit Used" value={molecular.extractionKit || ""} onChange={(v) => setValue("extractionKit", v)} options={EXTRACTION_KITS} />
+            <Select label="DNA Concentration Range" value={molecular.dnaConcentrationRange || ""} onChange={(v) => setValue("dnaConcentrationRange", v)} options={DNA_CONCENTRATION} />
             <Select label="PCR Method" value={molecular.pcrMethod || ""} onChange={(v) => setValue("pcrMethod", v)} options={PCR_METHODS} />
-            <Select label="PCR Protocol Type" value={molecular.pcrProtocolType || ""} onChange={(v) => setValue("pcrProtocolType", v)} options={PCR_PROTOCOLS} />
             <Select label="Sequencing Method" value={molecular.sequencingMethod || ""} onChange={(v) => setValue("sequencingMethod", v)} options={SEQUENCING_METHODS} />
             <Select label="Sequencing Quality" value={molecular.sequencingQuality || ""} onChange={(v) => setValue("sequencingQuality", v)} options={SEQUENCING_QUALITY} />
             <Select label="Bioinformatics Pipeline" value={molecular.bioinformaticsPipeline || ""} onChange={(v) => setValue("bioinformaticsPipeline", v)} options={BIOINFO_PIPELINES} />
-            <Select label="DNA Concentration Range" value={molecular.dnaConcentrationRange || ""} onChange={(v) => setValue("dnaConcentrationRange", v)} options={DNA_CONCENTRATION} />
-            <Select label="Accession / Submission Status" value={molecular.accessionStatus || ""} onChange={(v) => setValue("accessionStatus", v)} options={ACCESSION_STATUS} />
-            {molecular.accessionStatus === "Published" && <Input label="Accession Number" value={molecular.accessionNumber || ""} onChange={(v) => setValue("accessionNumber", v)} />}
           </Grid>
         </Box>
 
-        {/* ================= NOTES ================= */}
-        <Box title="Phylogenetic Description / Notes" open={open.notes} toggle={() => toggle("notes")}>
-          <Label>Description / Notes</Label>
-          <textarea
-            rows={4}
-            value={molecular.phylogeneticNotes || ""}
-            onChange={(e) => setValue("phylogeneticNotes", e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-base"
-          />
+        {/* ================= MARKER-SPECIFIC ================= */}
+        <Box title="Marker Specific Data" open={open.markers} toggle={() => toggle("markers")}>
+          {molecular.markers.map((marker, index) => (
+            <div key={index} className="border rounded-lg p-4 mb-6 bg-gray-50">
+              <h3 className="font-semibold mb-4">Marker #{index + 1}</h3>
+
+              <Grid>
+                <Select label="Marker Gene / Target" value={marker.markerGene} onChange={(v) => updateMarker(index, "markerGene", v)} options={MARKER_GENES} />
+                <Select label="Primer – Forward" value={marker.primerForward} onChange={(v) => updateMarker(index, "primerForward", v)} options={PRIMER_FORWARD_OPTIONS} />
+                <Select label="Primer – Reverse" value={marker.primerReverse} onChange={(v) => updateMarker(index, "primerReverse", v)} options={PRIMER_REVERSE_OPTIONS} />
+
+                <div>
+                  <Label>PCR Protocol Notes</Label>
+                  <textarea
+                    rows={3}
+                    value={marker.pcrProtocolType}
+                    onChange={(e) => updateMarker(index, "pcrProtocolType", e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-base"
+                  />
+                </div>
+
+                <Select label="Accession / Submission Status" value={marker.accessionStatus} onChange={(v) => updateMarker(index, "accessionStatus", v)} options={ACCESSION_STATUS} />
+
+                <div>
+                  <Label>Accession Number</Label>
+                  <input
+                    type="text"
+                    value={marker.accessionNumber}
+                    onChange={(e) => updateMarker(index, "accessionNumber", e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-base"
+                  />
+                </div>
+              </Grid>
+
+              {molecular.markers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeMarker(index)}
+                  className="mt-4 text-red-600 text-sm"
+                >
+                  Remove Marker
+                </button>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addMarker}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            + Add Another Marker
+          </button>
         </Box>
 
         <StepNavigation />
@@ -131,22 +259,15 @@ function Label({ children }) {
   return <label className="block text-sm mb-1">{children}</label>;
 }
 
-function Input({ label, value, onChange }) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base" />
-    </div>
-  );
-}
-
 function Select({ label, value, onChange, options }) {
   return (
     <div>
       <Label>{label}</Label>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base">
         <option value="">Select {label}</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
       </select>
     </div>
   );

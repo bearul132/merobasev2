@@ -14,20 +14,31 @@ export default function Step3B_IsolatedMorphology() {
     microscopic: true,
   });
 
-  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key) =>
+    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
   /* ================= IMAGE RESIZE & LIMIT ================= */
   const resizeImage = (file) =>
     new Promise((resolve) => {
       const img = new Image();
-      img.src = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
+      img.src = url;
       img.onload = () => {
+        URL.revokeObjectURL(url);
         const canvas = document.createElement("canvas");
         const maxDim = 1024;
         let w = img.width;
         let h = img.height;
-        if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
-        if (h > w && h > maxDim) { w *= maxDim / h; h = maxDim; }
+
+        if (w > h && w > maxDim) {
+          h *= maxDim / w;
+          w = maxDim;
+        }
+        if (h > w && h > maxDim) {
+          w *= maxDim / h;
+          h = maxDim;
+        }
+
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext("2d");
@@ -115,7 +126,9 @@ export default function Step3B_IsolatedMorphology() {
       >
         <FileUpload
           existing={isolated.macroscopic?.images || []}
-          onFiles={(files) => handleFileDrop("macroscopic", "images", files)}
+          onFiles={(files) =>
+            handleFileDrop("macroscopic", "images", files)
+          }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <SelectInput
@@ -128,59 +141,67 @@ export default function Step3B_IsolatedMorphology() {
             label="Macroscopic Arrangement"
             value={isolated.macroscopic?.arrangement || ""}
             options={macroscopicArrangements}
-            onChange={(v) => handleSelect("macroscopic", "arrangement", v)}
+            onChange={(v) =>
+              handleSelect("macroscopic", "arrangement", v)
+            }
           />
         </div>
       </CollapsibleBox>
 
-      {/* ================= COLONY DESCRIPTION ================= */}
+      {/* ================= COLONY DESCRIPTION (NO IMAGES) ================= */}
       <CollapsibleBox
         title="Colony Description"
         isOpen={open.colonyDescription}
         onToggle={() => toggle("colonyDescription")}
       >
-        <FileUpload
-          existing={isolated.colonyDescription?.images || []}
-          onFiles={(files) =>
-            handleFileDrop("colonyDescription", "images", files)
-          }
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SelectInput
             label="Shape"
             value={isolated.colonyDescription?.shape || ""}
             options={colonyShapes}
-            onChange={(v) => handleSelect("colonyDescription", "shape", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "shape", v)
+            }
           />
           <SelectInput
             label="Margin"
             value={isolated.colonyDescription?.margin || ""}
             options={colonyMargins}
-            onChange={(v) => handleSelect("colonyDescription", "margin", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "margin", v)
+            }
           />
           <SelectInput
             label="Elevation"
             value={isolated.colonyDescription?.elevation || ""}
             options={colonyElevations}
-            onChange={(v) => handleSelect("colonyDescription", "elevation", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "elevation", v)
+            }
           />
           <SelectInput
             label="Color"
             value={isolated.colonyDescription?.color || ""}
             options={colonyColors}
-            onChange={(v) => handleSelect("colonyDescription", "color", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "color", v)
+            }
           />
           <SelectInput
             label="Texture"
             value={isolated.colonyDescription?.texture || ""}
             options={colonyTextures}
-            onChange={(v) => handleSelect("colonyDescription", "texture", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "texture", v)
+            }
           />
           <SelectInput
             label="Motility"
             value={isolated.colonyDescription?.motility || ""}
             options={colonyMotilities}
-            onChange={(v) => handleSelect("colonyDescription", "motility", v)}
+            onChange={(v) =>
+              handleSelect("colonyDescription", "motility", v)
+            }
           />
         </div>
       </CollapsibleBox>
@@ -193,26 +214,34 @@ export default function Step3B_IsolatedMorphology() {
       >
         <FileUpload
           existing={isolated.microscopic?.images || []}
-          onFiles={(files) => handleFileDrop("microscopic", "images", files)}
+          onFiles={(files) =>
+            handleFileDrop("microscopic", "images", files)
+          }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <SelectInput
             label="Microscopic Shape"
             value={isolated.microscopic?.shape || ""}
             options={microscopicShapes}
-            onChange={(v) => handleSelect("microscopic", "shape", v)}
+            onChange={(v) =>
+              handleSelect("microscopic", "shape", v)
+            }
           />
           <SelectInput
             label="Microscopic Arrangement"
             value={isolated.microscopic?.arrangement || ""}
             options={microscopicArrangements}
-            onChange={(v) => handleSelect("microscopic", "arrangement", v)}
+            onChange={(v) =>
+              handleSelect("microscopic", "arrangement", v)
+            }
           />
           <SelectInput
             label="Gram Reaction"
             value={isolated.microscopic?.gramReaction || ""}
             options={gramReactions}
-            onChange={(v) => handleSelect("microscopic", "gramReaction", v)}
+            onChange={(v) =>
+              handleSelect("microscopic", "gramReaction", v)
+            }
           />
         </div>
       </CollapsibleBox>
@@ -228,8 +257,14 @@ function CollapsibleBox({ title, children, isOpen, onToggle }) {
         onClick={onToggle}
         className="w-full flex items-center justify-between px-6 py-4 rounded-t-2xl bg-gray-50 hover:bg-gray-100 transition"
       >
-        <h2 className="text-[18px] font-semibold text-gray-700">{title}</h2>
-        <ChevronDown className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <h2 className="text-[18px] font-semibold text-gray-700">
+          {title}
+        </h2>
+        <ChevronDown
+          className={`transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
       </button>
       {isOpen && <div className="p-6 space-y-6">{children}</div>}
     </div>
@@ -239,7 +274,9 @@ function CollapsibleBox({ title, children, isOpen, onToggle }) {
 function SelectInput({ label, value, options, onChange }) {
   return (
     <div>
-      <label className="block text-[14px] font-medium text-gray-600 mb-1">{label}</label>
+      <label className="block text-[14px] font-medium text-gray-600 mb-1">
+        {label}
+      </label>
       <select
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
@@ -267,8 +304,11 @@ function FileUpload({ existing = [], onFiles }) {
           hidden
           onChange={(e) => onFiles(e.target.files)}
         />
-        <p className="text-gray-500">Drag & drop or click to upload images</p>
+        <p className="text-gray-500">
+          Drag & drop or click to upload images
+        </p>
       </label>
+
       {existing.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           {existing.map((img) => (

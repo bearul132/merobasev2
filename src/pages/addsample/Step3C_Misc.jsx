@@ -82,7 +82,7 @@ export default function Step3C_Misc() {
                 antibacterialAssay: { ...antibacterial, pathogen: e.target.value }
               })
             }
-            options={["", "E. coli", "S. aureus", "P. aeruginosa", "B. subtilis"]}
+            options={["", "Methicillin-resistant Staphylococcus aureus,", "Eschericia coli", "P. aeruginosa", "B. subtilis", "Salmonella typhi","Salmonella typhimurium","Acinetobacter baumannii","Klebsiella pneumoniae","Aeromonas hydrophila","Vibrio parahaemolyticus" ]}
           />
 
           <Select
@@ -93,7 +93,7 @@ export default function Step3C_Misc() {
                 antibacterialAssay: { ...antibacterial, method: e.target.value }
               })
             }
-            options={["", "Disk diffusion", "Well diffusion", "MIC", "MBC"]}
+            options={["", "Disk diffusion / Kirby bauer", "Agar Well diffusion", "Agar plug diffusion", "Soft-agar overlay"]}
           />
 
           <Select
